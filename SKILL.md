@@ -55,3 +55,10 @@ Open `out/<name>/transit.html` in a browser. Video renders hide all of this, and
 - **Side panel:** service, name/resource, kind, start, duration, self time, status/error, attributes (already redacted), plus parent and child links you can click. Also a placeholder for the expected request/response (contracts not indexed yet).
 - **Links:** `#span=<id>` (or `?span=` / `?pin=`) selects a span. `?` shows the shortcut help, and `Esc` closes it or deselects.
 - **Tests:** `npm run test:ui` runs the Playwright keyboard and click tests.
+
+## AWS X-Ray traces
+
+- File: pass a BatchGetTraces response or the segment documents straight to build/render (auto-detected as `xray`).
+- CLI (headless, **untested live**): `node scripts/fetch.mjs xray <1-xxxxxxxx-… or 32-hex id>` writes `traces/<id>.xray.json`, and `node scripts/fetch.mjs xray --find --filter 'fault = true'` lists candidate ids. Uses the user's AWS CLI credentials; never store keys.
+- MCP (interactive): if the AWS Labs CloudWatch Application Signals MCP server is connected, call `get_xray_trace`, save the result to a file, then use the file. Check the saved shape first; it has not been verified live.
+- X-Ray samples about 5% of requests by default, so a specific request may have no trace.

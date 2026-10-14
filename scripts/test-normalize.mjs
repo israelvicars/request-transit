@@ -103,4 +103,52 @@ t('PostHog: bare array, base64 ids (HogQL), zero parent, end_time fallback, hasM
   const t2 = normalize({ results: arr, hasMore: true, nextOffset: 2 });
   assert.ok(t2.meta.warnings.some((w) => /hasMore/.test(w)));
 });
+t('X-Ray sample: auto-detected, same trip as the OTLP original', () => {
+  const xr = normalize(load('xray-checkout.json')), ot = normalize(load('otel-demo-checkout.otlp.json'));
+  assert.equal(xr.meta.format, 'xray'); assert.equal(xr.meta.synthetic, true);
+  assert.equal(xr.traceId, ot.traceId);
+  assert.equal(xr.spans.length, ot.spans.length);
+  assert.ok(xr.meta.warnings.some((w) => /inferred/.test(w)));
+  const byO = new Map(ot.spans.map((s) => [s.spanId, s]));
+  for (const s of xr.spans) {
+    const o = byO.get(s.spanId); assert.ok(o, s.spanId);
+    assert.equal(s.parentId, o.parentId); assert.equal(s.service, o.service); assert.equal(s.status, o.status === 'unset' ? 'ok' : o.status);
+    assert.ok(Math.abs(s.start - o.start) < 0.002 && Math.abs(s.duration - o.duration) < 0.002, `${s.spanId} timing`);
+    assert.equal(s.kind, o.kind, `${s.service} ${o.name} kind`);
+  }
+  const email = xr.spans.find((s) => s.service === 'email' && !s.parentId === false && s.kind === 'server');
+  assert.equal(email.status, 'error'); assert.match(email.statusMessage, /order confirmation/);
+  assert.equal(xr.spans.find((s) => s.kind === 'producer').peer, 'SQS');
+});
+
+t('X-Ray: bare segment docs, subsegments, namespaces, fault/error/throttle, in-progress', () => {
+  const tid = '1-5f84c7a5-2b0c4a1e9d3f6b7a8c9d0e1f';
+  const front = { id: 'a000000000000001', trace_id: tid, name: 'web', start_time: 1700000000.0, end_time: 1700000000.5,
+    http: { request: { method: 'GET', url: 'https://x.example/cart?id=1' }, response: { status: 500 } }, fault: true,
+    cause: { exceptions: [{ type: 'TimeoutError', message: 'downstream timed out' }] },
+    subsegments: [
+      { id: 'b000000000000001', name: 'render', start_time: 1700000000.01, end_time: 1700000000.02 },
+      { id: 'b000000000000002', name: 'DynamoDB', namespace: 'aws', start_time: 1700000000.03, end_time: 1700000000.08, throttle: true, error: true,
+        http: { response: { status: 429 } }, aws: { operation: 'GetItem', table_name: 'carts' } },
+      { id: 'b000000000000003', name: 'api', namespace: 'remote', start_time: 1700000000.1, end_time: 1700000000.45, fault: true },
+    ] };
+  const api = { id: 'c000000000000001', trace_id: tid, parent_id: 'b000000000000003', name: 'api', start_time: 1700000000.101, in_progress: true,
+    subsegments: [{ id: 'd000000000000001', name: 'work', start_time: 1700000000.102, end_time: 1700000000.3 }] };
+  const inferred = { id: 'e000000000000001', trace_id: tid, parent_id: 'b000000000000002', name: 'DynamoDB', inferred: true, start_time: 1700000000.03, end_time: 1700000000.08 };
+  const tr = normalize(JSON.stringify([front, JSON.stringify(api), inferred].map((d) => typeof d === 'string' ? { Document: d } : d)));
+  assert.equal(tr.meta.format, 'xray'); assert.equal(tr.traceId, '5f84c7a52b0c4a1e9d3f6b7a8c9d0e1f');
+  const by = Object.fromEntries(tr.spans.map((s) => [s.spanId, s]));
+  assert.equal(tr.spans.length, 6);
+  assert.equal(by.a000000000000001.name, 'GET /cart'); assert.equal(by.a000000000000001.kind, 'server');
+  assert.equal(by.a000000000000001.statusMessage, 'TimeoutError: downstream timed out');
+  assert.equal(by.b000000000000001.kind, 'internal'); assert.equal(by.b000000000000001.service, 'web'); assert.equal(by.b000000000000001.parentId, 'a000000000000001');
+  const ddb = by.b000000000000002;
+  assert.equal(ddb.kind, 'client'); assert.equal(ddb.peer, 'DynamoDB'); assert.equal(ddb.status, 'error'); assert.equal(ddb.statusMessage, 'throttled (HTTP 429)');
+  assert.equal(ddb.attrs['rpc.method'], 'GetItem'); assert.equal(ddb.attrs['db.name'], 'carts');
+  assert.equal(by.c000000000000001.parentId, 'b000000000000003'); assert.equal(by.c000000000000001.duration, 199);
+  assert.equal(by.d000000000000001.service, 'api');
+  assert.ok(tr.meta.warnings.some((w) => /in progress/.test(w)) && tr.meta.warnings.some((w) => /inferred/.test(w)));
+  assert.throws(() => normalize({ TraceSummaries: [{ Id: tid }] }), /GetTraceSummaries/);
+});
+
 console.log(`${n} tests passed`);

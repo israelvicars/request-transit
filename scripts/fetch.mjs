@@ -2,6 +2,8 @@
 //   file (default, no auth):  node scripts/fetch.mjs file <trace.json> [--out trace.transit.json] [--trace-id ID]
 //   datadog-api (headless/CI): node scripts/fetch.mjs datadog-api <trace_id>   (needs DD_API_KEY, DD_APP_KEY, DD_SITE; untested)
 //   posthog-api (headless):  node scripts/fetch.mjs posthog-api <trace_id> (POSTHOG_API_KEY, POSTHOG_HOST, POSTHOG_PROJECT_ID; untested)
+//   xray (headless, AWS CLI):  node scripts/fetch.mjs xray <trace id> | xray --find   (your AWS CLI credentials; untested live)
+//   aws-mcp (interactive): agent calls get_xray_trace on the CloudWatch Application Signals MCP server, saves JSON, then `file`.
 //   posthog-mcp (interactive): agent calls apm-trace-get, saves the JSON, then uses `file`.
 //   datadog-mcp (interactive): not a script. The agent calls the Datadog MCP server, saves the span
 //                              JSON it returns to a file, then runs the `file` backend. See references/adapters.md.
@@ -22,6 +24,8 @@ if (backend === 'file' && arg) {
   runChild('../adapters/fetch-datadog-api.mjs', [arg, ...rest]);
 } else if (backend === 'posthog-api' && arg) {
   runChild('../adapters/fetch-posthog-api.mjs', [arg, ...rest]);
+} else if (backend === 'xray' && arg) {
+  runChild('../adapters/fetch-xray.mjs', [arg, ...rest]);
 } else {
-  console.error('usage: node scripts/fetch.mjs file <trace.json> | datadog-api <trace_id> | posthog-api <trace_id>'); process.exit(1);
+  console.error('usage: node scripts/fetch.mjs file <trace.json> | datadog-api <trace_id> | posthog-api <trace_id> | xray <trace_id>|--find'); process.exit(1);
 }

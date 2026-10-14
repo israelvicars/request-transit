@@ -20,9 +20,10 @@
 //   datadog-v2 Datadog Spans API (GET /api/v2/spans/events, POST .../events/search) response:
 //              {data:[{type:'spans', attributes:{trace_id, span_id, parent_id, service,
 //              resource_name, start_timestamp, end_timestamp, custom:{...}, tags:[...]}}]}
+//   xray       AWS X-Ray BatchGetTraces response or segment documents (segments + nested subsegments)
 //   internal   already-normalized JSON (passed through and re-validated)
 //
-// CLI: node normalize.mjs <trace.json> [--format otlp|posthog|datadog|datadog-v2|internal] [--trace-id ID]
+// CLI: node normalize.mjs <trace.json> [--format otlp|posthog|xray|datadog|datadog-v2|internal] [--trace-id ID]
 //      prints the normalized JSON to stdout
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -37,6 +38,9 @@ export function parseJsonSafe(text) {
 
 export function detectFormat(doc) {
   if (doc && Array.isArray(doc.resourceSpans)) return 'otlp';
+  const xr = isXray(doc);
+  if (xr === 'summaries') throw new Error('this is GetTraceSummaries output (trace ids only, no segments): fetch the segments with `aws xray batch-get-traces --trace-ids <Id>` or scripts/fetch.mjs xray <Id>');
+  if (xr) return 'xray';
   const ph = posthogSpans(doc);
   if (ph && ph[0] && 'span_id' in ph[0] && ('duration_nano' in ph[0] || 'service_name' in ph[0])) return 'posthog';
   if (doc && Array.isArray(doc.data) && doc.data[0] && doc.data[0].attributes && 'span_id' in doc.data[0].attributes) return 'datadog-v2';
@@ -45,7 +49,7 @@ export function detectFormat(doc) {
     : doc && Array.isArray(doc.spans) ? doc.spans[0] : null;
   if (first && 'span_id' in first && 'trace_id' in first) return 'datadog';
   if (first && 'spanId' in first && 'start' in first && 'duration' in first) return 'internal';
-  throw new Error('unrecognized trace format: expected OTLP JSON (resourceSpans), PostHog tracing spans (span_id/service_name/duration_nano), Datadog spans (trace_id/span_id) or the internal schema');
+  throw new Error('unrecognized trace format: expected OTLP JSON (resourceSpans), PostHog tracing spans (span_id/service_name/duration_nano), Datadog spans (trace_id/span_id), AWS X-Ray (BatchGetTraces / segment documents) or the internal schema');
 }
 
 // ---------------------------------------------------------------- OTLP
@@ -195,6 +199,94 @@ function fromPosthog(doc) {
   return { raw, format: 'posthog', source: doc && doc._comment };
 }
 
+// ---------------------------------------------------------------- AWS X-Ray
+// Input: the `aws xray batch-get-traces` / BatchGetTraces response {Traces:[{Id, Segments:[{Id, Document}]}]}
+// (Document is a JSON string), or {Segments:[...]}, or an array of segment documents, or one segment document.
+// GetTraceSummaries output has no segments; it is only for finding trace ids (scripts/fetch.mjs xray --find).
+// Segment document fields (docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html):
+//   segment                -> span, kind server (consumer when its parent is a producer subsegment)
+//     name -> service; id -> spanId; parent_id (upstream subsegment) -> parentId; trace_id 1-xxxxxxxx-24hex -> 32-hex
+//     start_time / end_time (epoch seconds, float) -> ns; in_progress without end_time -> end of its children
+//   subsegment (nested in subsegments[]) -> span in the same service, parent = enclosing (sub)segment
+//     no namespace           -> in-process work: kind internal
+//     namespace remote | aws -> downstream call: kind client (producer for SQS/SNS/Kinesis/EventBridge sends),
+//                               peer = name; becomes a line to the callee's segment if one has it as parent_id,
+//                               else an infrastructure node
+//   fault (5xx) / error (4xx) / throttle (429) -> status error; message from cause.exceptions[0] or the flag + HTTP status
+//   inferred segments (inferred: true, made by X-Ray for AWS services) are dropped: the aws subsegment already draws them
+//   http.request.method/url, http.response.status, aws.operation/table_name/queue_url, sql.database_type -> attrs
+const XRAY_PRODUCE = /^(SendMessage|SendMessageBatch|Publish|PublishBatch|PutRecord|PutRecords|PutEvents)$/;
+function xraySegments(doc) {
+  const docs = [];
+  const add = (d) => docs.push(typeof d === 'string' ? JSON.parse(d) : d);
+  if (doc && Array.isArray(doc.Traces)) { for (const t of doc.Traces) for (const s of t.Segments || []) add(s.Document); }
+  else if (doc && Array.isArray(doc.Segments)) { for (const s of doc.Segments) add(s.Document || s); }
+  else if (Array.isArray(doc)) { for (const s of doc) add(s.Document || s); }
+  else if (doc && doc.trace_id && doc.start_time != null) add(doc);
+  return docs;
+}
+const isXray = (doc) => {
+  if (doc && Array.isArray(doc.TraceSummaries)) return 'summaries';
+  if (doc && Array.isArray(doc.Traces) && doc.Traces[0] && Array.isArray(doc.Traces[0].Segments)) return 'xray';
+  const first = doc && Array.isArray(doc.Segments) ? doc.Segments[0] : Array.isArray(doc) ? doc[0] : doc;
+  if (!first || typeof first !== 'object') return null;
+  if (first.Document && /"start_time"/.test(first.Document)) return 'xray';
+  if (first.trace_id && first.start_time != null && first.id) return 'xray';
+  return null;
+};
+const xrayTraceId = (id) => { const m = /^1-([0-9a-f]{8})-([0-9a-f]{24})$/i.exec(id || ''); return m ? (m[1] + m[2]).toLowerCase() : id; };
+const secNs = (x) => BigInt(Math.round(Number(x) * 1e6)) * 1000n;   // X-Ray times carry microseconds
+function fromXray(doc) {
+  const raw = [], warnings = [];
+  let dropped = 0, open = 0;
+  const all = xraySegments(doc);
+  function walk(s, ctx) {
+    const isSeg = !ctx;
+    const svc = isSeg ? s.name : ctx.service;
+    const ns = s.namespace;
+    const aws = s.aws || {}, http = s.http || {}, req = http.request || {}, res = http.response || {};
+    let kind = isSeg ? 'server' : (ns === 'remote' || ns === 'aws') ? 'client' : 'internal';
+    if (kind === 'client' && XRAY_PRODUCE.test(aws.operation || '')) kind = 'producer';
+    const failed = !!(s.fault || s.error || s.throttle);
+    const ex = s.cause && Array.isArray(s.cause.exceptions) && s.cause.exceptions[0];
+    const flag = s.throttle ? 'throttled' : s.fault ? 'fault' : 'error';
+    const startNs = secNs(s.start_time);
+    const kids = (s.subsegments || []).map((c) => walk(c, { service: svc, parent: s.id, traceId: ctx ? ctx.traceId : s.trace_id }));
+    let endNs;
+    if (s.end_time != null) endNs = secNs(s.end_time);
+    else { open++; endNs = kids.reduce((m, k) => (k.endNs > m ? k.endNs : m), startNs); }
+    const attrs = pick({
+      'http.request.method': req.method, 'url.full': req.url, 'http.response.status_code': res.status,
+      'rpc.system': ns === 'aws' ? 'aws-api' : undefined, 'rpc.service': ns === 'aws' ? s.name : undefined, 'rpc.method': aws.operation,
+      'db.system': (s.sql && s.sql.database_type) || (aws.table_name ? 'dynamodb' : undefined), 'db.name': aws.table_name,
+      'messaging.system': aws.queue_url ? 'aws_sqs' : undefined,
+      'messaging.destination.name': aws.queue_url ? String(aws.queue_url).split('/').pop() : aws.topic_arn ? String(aws.topic_arn).split(':').pop() : undefined,
+      'component': s.origin,
+    });
+    const span = {
+      traceId: xrayTraceId(isSeg ? s.trace_id : ctx.traceId), spanId: s.id, parentId: isSeg ? (s.parent_id || null) : ctx.parent,
+      service: svc || 'unknown_service',
+      name: isSeg ? (req.method && req.url ? `${req.method} ${new URL(req.url, 'http://x').pathname}` : s.name)
+        : aws.operation ? `${s.name} ${aws.operation}` : (s.sql && s.sql.sanitized_query) || (req.method && req.url ? `${req.method} ${new URL(req.url, 'http://x').pathname}` : s.name),
+      kind, startNs, endNs, status: failed ? 'error' : 'ok',
+      statusMessage: failed ? (ex && (ex.message || ex.type) ? `${ex.type ? ex.type + ': ' : ''}${ex.message || ''}`.replace(/: $/, '') : `${flag}${res.status ? ' (HTTP ' + res.status + ')' : ''}`) : undefined,
+      peer: kind === 'client' || kind === 'producer' ? s.name : undefined,
+      operation: aws.operation, attrs,
+    };
+    raw.push(span);
+    return span;
+  }
+  for (const s of all) { if (s.inferred) { dropped++; continue; } walk(s, null); }
+  // a segment whose parent is a producer subsegment was delivered through a queue
+  const byId = new Map(raw.map((s) => [s.spanId, s]));
+  for (const s of raw) { const p = s.parentId && byId.get(s.parentId); if (s.kind === 'server' && p && p.kind === 'producer') s.kind = 'consumer'; }
+  if (dropped) warnings.push(`dropped ${dropped} inferred segment(s) (AWS services X-Ray drew from client subsegments)`);
+  if (open) warnings.push(`${open} segment(s) still in progress; end set to their last child`);
+  if (doc && Array.isArray(doc.UnprocessedTraceIds) && doc.UnprocessedTraceIds.length) warnings.push(`X-Ray could not return: ${doc.UnprocessedTraceIds.join(', ')}`);
+  raw.warnings = warnings;
+  return { raw, format: 'xray', source: doc && doc._comment };
+}
+
 // ---------------------------------------------------------------- Datadog Spans API v2
 // attributes.start_timestamp / end_timestamp are ISO-8601 (millisecond precision); durations in
 // custom.duration (ns) are preferred when present. error from custom.error, custom.status or a
@@ -236,7 +328,7 @@ export function normalize(doc, { format, traceId } = {}) {
   if (typeof doc === 'string') doc = parseJsonSafe(doc);
   format = format || detectFormat(doc);
   if (format === 'internal') return validate(doc);
-  const { raw, source } = format === 'otlp' ? fromOtlp(doc) : format === 'posthog' ? fromPosthog(doc) : format === 'datadog' ? fromDatadog(doc) : fromDatadogV2(doc);
+  const { raw, source } = format === 'otlp' ? fromOtlp(doc) : format === 'posthog' ? fromPosthog(doc) : format === 'xray' ? fromXray(doc) : format === 'datadog' ? fromDatadog(doc) : fromDatadogV2(doc);
   if (!raw.length) throw new Error('no spans found');
   const warnings = [...(raw.warnings || [])];
   // One trace per viz. Pick the requested one, else the trace with the most spans.
@@ -282,7 +374,7 @@ export function validate(t) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const argv = process.argv.slice(2); const opt = {}; const pos = [];
   for (let i = 0; i < argv.length; i++) argv[i].startsWith('--') ? (opt[argv[i].slice(2)] = argv[++i]) : pos.push(argv[i]);
-  if (!pos[0]) { console.error('usage: node normalize.mjs <trace.json> [--format otlp|posthog|datadog|datadog-v2|internal] [--trace-id ID]'); process.exit(1); }
+  if (!pos[0]) { console.error('usage: node normalize.mjs <trace.json> [--format otlp|posthog|xray|datadog|datadog-v2|internal] [--trace-id ID]'); process.exit(1); }
   const t = normalize(readFileSync(pos[0], 'utf8'), { format: opt.format, traceId: opt['trace-id'] });
   for (const w of t.meta.warnings) console.error('warning:', w);
   process.stdout.write(JSON.stringify(t, null, 1) + '\n');
