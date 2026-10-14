@@ -20,10 +20,13 @@
 //   datadog-v2 Datadog Spans API (GET /api/v2/spans/events, POST .../events/search) response:
 //              {data:[{type:'spans', attributes:{trace_id, span_id, parent_id, service,
 //              resource_name, start_timestamp, end_timestamp, custom:{...}, tags:[...]}}]}
+//   tempo      Grafana Tempo trace-by-id: v1 /api/traces/<id> ({batches:[ResourceSpans]}) or
+//              v2 /api/v2/traces/<id> ({trace:{resourceSpans|batches}, status?}); OTLP inside, ids base64
+//              (protobuf-JSON) or hex, enums as strings or numbers, scopeSpans or instrumentationLibrarySpans
 //   xray       AWS X-Ray BatchGetTraces response or segment documents (segments + nested subsegments)
 //   internal   already-normalized JSON (passed through and re-validated)
 //
-// CLI: node normalize.mjs <trace.json> [--format otlp|posthog|xray|datadog|datadog-v2|internal] [--trace-id ID]
+// CLI: node normalize.mjs <trace.json> [--format otlp|tempo|posthog|xray|datadog|datadog-v2|internal] [--trace-id ID]
 //      prints the normalized JSON to stdout
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +41,7 @@ export function parseJsonSafe(text) {
 
 export function detectFormat(doc) {
   if (doc && Array.isArray(doc.resourceSpans)) return 'otlp';
+  if (tempoResourceSpans(doc)) return 'tempo';
   const xr = isXray(doc);
   if (xr === 'summaries') throw new Error('this is GetTraceSummaries output (trace ids only, no segments): fetch the segments with `aws xray batch-get-traces --trace-ids <Id>` or scripts/fetch.mjs xray <Id>');
   if (xr) return 'xray';
@@ -49,7 +53,32 @@ export function detectFormat(doc) {
     : doc && Array.isArray(doc.spans) ? doc.spans[0] : null;
   if (first && 'span_id' in first && 'trace_id' in first) return 'datadog';
   if (first && 'spanId' in first && 'start' in first && 'duration' in first) return 'internal';
-  throw new Error('unrecognized trace format: expected OTLP JSON (resourceSpans), PostHog tracing spans (span_id/service_name/duration_nano), Datadog spans (trace_id/span_id), AWS X-Ray (BatchGetTraces / segment documents) or the internal schema');
+  throw new Error('unrecognized trace format: expected OTLP JSON (resourceSpans), Grafana Tempo (batches / trace.resourceSpans), PostHog tracing spans (span_id/service_name/duration_nano), Datadog spans (trace_id/span_id), AWS X-Ray (BatchGetTraces / segment documents) or the internal schema');
+}
+
+// ---------------------------------------------------------------- Grafana Tempo
+// Tempo wraps OTLP. v1: {batches:[...]}. v2: {trace:{resourceSpans:[...]}} (older builds: trace.batches),
+// with status "PARTIAL"/"COMPLETE" and an optional message when the trace was cut (size limit, q filter).
+function tempoResourceSpans(doc) {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return null;
+  if (Array.isArray(doc.batches)) return doc.batches;
+  const t = doc.trace;
+  if (t && typeof t === 'object') {
+    if (Array.isArray(t.resourceSpans)) return t.resourceSpans;
+    if (Array.isArray(t.batches)) return t.batches;
+    if (!Object.keys(t).length) return [];
+  }
+  return null;
+}
+function fromTempo(doc) {
+  const rs = tempoResourceSpans(doc) || [];
+  const r = fromOtlp({ resourceSpans: rs });
+  const warnings = [...(r.raw.warnings || [])];
+  const st = String(doc.status || '').toUpperCase();
+  if (st.includes('PARTIAL')) warnings.push(`Tempo returned a PARTIAL trace${doc.message ? `: ${doc.message}` : ''}; some spans may be missing`);
+  r.raw.warnings = warnings;
+  r.source = r.source || (doc._comment ? String(doc._comment) : null);
+  return r;
 }
 
 // ---------------------------------------------------------------- OTLP
@@ -328,7 +357,7 @@ export function normalize(doc, { format, traceId } = {}) {
   if (typeof doc === 'string') doc = parseJsonSafe(doc);
   format = format || detectFormat(doc);
   if (format === 'internal') return validate(doc);
-  const { raw, source } = format === 'otlp' ? fromOtlp(doc) : format === 'posthog' ? fromPosthog(doc) : format === 'xray' ? fromXray(doc) : format === 'datadog' ? fromDatadog(doc) : fromDatadogV2(doc);
+  const { raw, source } = format === 'otlp' ? fromOtlp(doc) : format === 'tempo' ? fromTempo(doc) : format === 'posthog' ? fromPosthog(doc) : format === 'xray' ? fromXray(doc) : format === 'datadog' ? fromDatadog(doc) : fromDatadogV2(doc);
   if (!raw.length) throw new Error('no spans found');
   const warnings = [...(raw.warnings || [])];
   // One trace per viz. Pick the requested one, else the trace with the most spans.

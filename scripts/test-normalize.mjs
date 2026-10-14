@@ -103,6 +103,28 @@ t('PostHog: bare array, base64 ids (HogQL), zero parent, end_time fallback, hasM
   const t2 = normalize({ results: arr, hasMore: true, nextOffset: 2 });
   assert.ok(t2.meta.warnings.some((w) => /hasMore/.test(w)));
 });
+t('Tempo v2 sample: auto-detected, base64 ids + string enums, same trip as the OTLP original', () => {
+  const tp = normalize(load('tempo-checkout.json')), ot = normalize(load('otel-demo-checkout.otlp.json'));
+  assert.equal(tp.meta.format, 'tempo'); assert.equal(tp.meta.synthetic, true);
+  assert.equal(tp.traceId, ot.traceId);
+  assert.deepEqual(tp.spans.map((s) => [s.spanId, s.parentId, s.service, s.kind, s.status, s.start, s.duration]),
+    ot.spans.map((s) => [s.spanId, s.parentId, s.service, s.kind, s.status, s.start, s.duration]));
+});
+t('Tempo v1 batches + instrumentationLibrarySpans, v2 trace.batches, PARTIAL warning, empty trace', () => {
+  const sp = (id, parent, kind, extra = {}) => ({ traceId: Buffer.from('0af7651916cd43dd8448eb211c80319c', 'hex').toString('base64'),
+    spanId: Buffer.from(id, 'hex').toString('base64'), ...(parent ? { parentSpanId: Buffer.from(parent, 'hex').toString('base64') } : {}),
+    name: 'op-' + id.slice(-2), kind, startTimeUnixNano: '1700000000000000000', endTimeUnixNano: '1700000000005000000', ...extra });
+  const rs = (svc, spans, key = 'scopeSpans') => ({ resource: { attributes: [{ key: 'service.name', value: { stringValue: svc } }] }, [key]: [{ spans }] });
+  const batches = [rs('api', [sp('00000000000000a1', null, 'SPAN_KIND_SERVER')], 'instrumentationLibrarySpans'),
+    rs('db-client', [sp('00000000000000a2', '00000000000000a1', 3, { status: { code: 'STATUS_CODE_ERROR', message: 'timeout' } })])];
+  const v1 = normalize({ batches });
+  assert.equal(v1.meta.format, 'tempo'); assert.equal(v1.traceId, '0af7651916cd43dd8448eb211c80319c');
+  assert.equal(v1.spans.length, 2); assert.equal(v1.spans[1].parentId, '00000000000000a1');
+  assert.equal(v1.spans[1].kind, 'client'); assert.equal(v1.spans[1].status, 'error'); assert.equal(v1.spans[1].statusMessage, 'timeout');
+  const v2 = normalize({ trace: { batches }, status: 'PARTIAL', message: 'trace exceeds max size' });
+  assert.equal(v2.spans.length, 2); assert.ok(v2.meta.warnings.some((w) => /PARTIAL.*max size/.test(w)));
+  assert.throws(() => normalize({ trace: {} }), /no spans/);
+});
 t('X-Ray sample: auto-detected, same trip as the OTLP original', () => {
   const xr = normalize(load('xray-checkout.json')), ot = normalize(load('otel-demo-checkout.otlp.json'));
   assert.equal(xr.meta.format, 'xray'); assert.equal(xr.meta.synthetic, true);

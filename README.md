@@ -46,7 +46,7 @@ Locations are from the official docs: [Claude Code](https://code.claude.com/docs
 
 ### Next to MCP, not instead of it
 
-Observability MCP servers (PostHog, Datadog, Sentry, Grafana, AWS, …) are good at *finding* a trace. Transit is the step after that: the agent saves what the MCP tool returned, and Transit turns it into a picture a human can follow in ten seconds.
+Observability MCP servers (PostHog, Datadog, Grafana/Tempo, Sentry, AWS, …) are good at *finding* a trace. Transit is the step after that: the agent saves what the MCP tool returned, and Transit turns it into a picture a human can follow in ten seconds.
 
 - It is a skill plus local scripts, not a server, so it adds no tool schemas to the context.
 - It never needs API keys of its own; the headless fetch scripts read keys from env only.
@@ -59,7 +59,8 @@ Observability MCP servers (PostHog, Datadog, Sentry, Grafana, AWS, …) are good
 | Datadog | tracer/agent span JSON, Spans API v2 | MCP or `fetch.mjs datadog-api` | ✅ adapter tested · fetch **untested live** |
 | PostHog Distributed Tracing | trace endpoint / MCP `apm-trace-get` | MCP or `fetch.mjs posthog-api` | ✅ adapter tested · fetch **untested live** |
 | AWS X-Ray | BatchGetTraces / segment documents | `fetch.mjs xray` (AWS CLI) or AWS MCP `get_xray_trace` | ✅ adapter tested · fetch **untested live** |
-| Jaeger, Grafana Tempo | OTLP-shaped API responses | — | 🧭 planned ([research](references/more-sources.md)) |
+| Grafana Tempo | `/api/traces` v1, `/api/v2/traces` JSON | `fetch.mjs tempo` (`TEMPO_URL`) or Grafana / Tempo MCP | ✅ adapter tested · fetch tested on a mock only, **untested live** |
+| Jaeger | OTLP-shaped API responses | — | 🧭 planned ([research](references/more-sources.md)) |
 | Sentry, Honeycomb, GCP Cloud Trace, Zipkin | — | — | 🧭 researched, not started |
 
 "Adapter tested" means the format is parsed in unit tests and rendered from a synthetic sample. No live account has been used.
@@ -105,7 +106,7 @@ Each frame is a pure function `renderAt(t)`: no clock, no timers, no randomness.
 | --- | --- |
 | `SKILL.md`, `references/` | agent skill entry point; design system, adapters, sources, contracts, config |
 | `engine/` | build (trace → self-contained HTML), subway template, frame renderer, ffmpeg export, fonts |
-| `adapters/` | OTLP, PostHog, Datadog, Datadog v2 and X-Ray → normalized spans; API/CLI fetch scripts |
+| `adapters/` | OTLP, Tempo, PostHog, Datadog, Datadog v2 and X-Ray → normalized spans; API/CLI fetch scripts |
 | `contracts/` | optional contract layer: extractors, index, matcher |
 | `scripts/` | `setup`, `fetch`, `render`, `verify`, `still`, `transit` (index), tests |
 | `samples/`, `examples/` | synthetic traces and a synthetic example app |
@@ -114,7 +115,7 @@ Each frame is a pure function `renderAt(t)`: no clock, no timers, no randomness.
 ```sh
 npm test                 # adapters + contract layer
 npm run test:ui          # Playwright keyboard, click and scroll tests
-npm run verify           # also verify:dd, verify:posthog, verify:xray
+npm run verify           # also verify:dd, verify:posthog, verify:xray, verify:tempo
 ```
 
 ## License

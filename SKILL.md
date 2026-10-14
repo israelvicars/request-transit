@@ -74,6 +74,12 @@ Open `transit-out/<name>/transit.html` in a browser. Video renders hide all of t
 - MCP (interactive): if the AWS Labs CloudWatch Application Signals MCP server is connected, call `get_xray_trace`, save the result to a file, then use the file. Check the saved shape first; it has not been verified live.
 - X-Ray samples about 5% of requests by default, so a specific request may have no trace.
 
+## Grafana Tempo traces
+
+- File: pass a Tempo `/api/v2/traces/<id>` or `/api/traces/<id>` JSON response straight to build/render (auto-detected as `tempo`).
+- API (headless): `node scripts/fetch.mjs tempo <trace_id>` with `TEMPO_URL` (+ optional `TEMPO_TOKEN`, or `TEMPO_USER`/`TEMPO_PASSWORD`, `TEMPO_TENANT`) writes `traces/<id>.tempo.json`; `tempo --find '{ status = error }'` lists ids. Tested on a mock server only.
+- MCP (interactive): Grafana's MCP server (`get_tempo_trace`) or Tempo's built-in `/api/mcp` (`get-trace`). Save the OTLP JSON result to a file, then use the file. Don't use the `vnd.grafana.llm` format.
+
 ## Contract layer (optional: ask first)
 
 This layer reads the user's source code, so it is never run by default.
