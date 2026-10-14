@@ -19,7 +19,7 @@
 //   --scale N              deviceScaleFactor, e.g. 2 for crisp text (PNG is W*N x H*N)
 //   --frames a,b,c         only these frame numbers (no folder wipe, existing files are overwritten)
 //   --out DIR              output folder (default out/frames)
-import { chromium } from 'playwright';
+import { launchBrowser } from './tools.mjs';
 import { pathToFileURL } from 'node:url';
 import { mkdirSync, rmSync } from 'node:fs';
 import { resolve, join } from 'node:path';
@@ -40,7 +40,7 @@ if (!(FPS > 0) || !(N > 0)) { console.error('seconds and fps must be positive nu
 if (!only) rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch();
+const browser = await launchBrowser();
 const context = await browser.newContext({ viewport: { width: 1200, height: 675 }, deviceScaleFactor: SCALE });
 // Runs before any page script: tell the page it is being rendered, and wrap rAF so it can be frozen.
 await context.addInitScript(() => {

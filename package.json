@@ -6,27 +6,28 @@
   "description": "Transit: a public transit map for your requests. Animates one trace (OpenTelemetry or Datadog) as a subway map.",
   "scripts": {
     "test": "node scripts/test-normalize.mjs && node scripts/test-contracts.mjs && node scripts/build-plugin-skill.mjs --check",
-    "build": "node engine/build.mjs samples/otel-demo-checkout.otlp.json --out out/otel/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC hand-built trace in OTLP JSON shape\"",
-    "build:dd": "node engine/build.mjs samples/datadog-sample.json --out out/dd/transit.html --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  \u00b7  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
-    "render": "node scripts/render.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC hand-built trace in OTLP JSON shape\"",
-    "render:dd": "node scripts/render.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  \u00b7  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
-    "verify": "node scripts/verify.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC hand-built trace in OTLP JSON shape\"",
-    "verify:dd": "node scripts/verify.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  \u00b7  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
-    "render:posthog": "node scripts/render.mjs samples/posthog-checkout.json --name posthog --title \"Checkout, from a PostHog Distributed Tracing trace\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC sample in PostHog trace-endpoint shape\"",
-    "verify:posthog": "node scripts/verify.mjs samples/posthog-checkout.json --name posthog --title \"Checkout, from a PostHog Distributed Tracing trace\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC sample in PostHog trace-endpoint shape\"",
-    "test:ui": "npm run -s build && npm run -s index:example && npm run -s build:contracts && node scripts/test-ui.mjs out/otel/transit.html --shot out/ui/panel-open.png --contracts-page out/otel-contracts/transit.html --contracts-shot out/ui/panel-contracts.png --scroll-shots out/ui",
-    "render:tempo": "node scripts/render.mjs samples/tempo-checkout.json --name tempo --title \"Checkout, from a Grafana Tempo trace\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC sample in Tempo /api/v2/traces shape\"",
-    "verify:tempo": "node scripts/verify.mjs samples/tempo-checkout.json --name tempo --title \"Checkout, from a Grafana Tempo trace\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC sample in Tempo /api/v2/traces shape\"",
-    "render:xray": "node scripts/render.mjs samples/xray-checkout.json --name xray --title \"Checkout, from an AWS X-Ray trace\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC sample in AWS X-Ray BatchGetTraces shape\"",
-    "verify:xray": "node scripts/verify.mjs samples/xray-checkout.json --name xray --title \"Checkout, from an AWS X-Ray trace\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC sample in AWS X-Ray BatchGetTraces shape\"",
+    "build": "node engine/build.mjs samples/otel-demo-checkout.otlp.json --out out/otel/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
+    "build:dd": "node engine/build.mjs samples/datadog-sample.json --out out/dd/transit.html --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
+    "render": "node scripts/render.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
+    "render:dd": "node scripts/render.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
+    "verify": "node scripts/verify.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
+    "verify:dd": "node scripts/verify.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
+    "render:posthog": "node scripts/render.mjs samples/posthog-checkout.json --name posthog --title \"Checkout, from a PostHog Distributed Tracing trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in PostHog trace-endpoint shape\"",
+    "verify:posthog": "node scripts/verify.mjs samples/posthog-checkout.json --name posthog --title \"Checkout, from a PostHog Distributed Tracing trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in PostHog trace-endpoint shape\"",
+    "test:ui": "npm run -s build && npm run -s index:example && npm run -s build:contracts && node scripts/test-ui.mjs out/otel/transit.html --shot out/ui/panel-open.png --contracts-page out/otel-contracts/transit.html --contracts-shot out/ui/panel-contracts.png --scroll-shots out/ui && node scripts/test-network.mjs",
+    "test:network": "node scripts/test-network.mjs",
+    "render:tempo": "node scripts/render.mjs samples/tempo-checkout.json --name tempo --title \"Checkout, from a Grafana Tempo trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in Tempo /api/v2/traces shape\"",
+    "verify:tempo": "node scripts/verify.mjs samples/tempo-checkout.json --name tempo --title \"Checkout, from a Grafana Tempo trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in Tempo /api/v2/traces shape\"",
+    "render:xray": "node scripts/render.mjs samples/xray-checkout.json --name xray --title \"Checkout, from an AWS X-Ray trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in AWS X-Ray BatchGetTraces shape\"",
+    "verify:xray": "node scripts/verify.mjs samples/xray-checkout.json --name xray --title \"Checkout, from an AWS X-Ray trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in AWS X-Ray BatchGetTraces shape\"",
     "index:example": "node scripts/transit.mjs index --config examples/astronomy-shop/transit.config.json --print",
-    "build:contracts": "node engine/build.mjs samples/otel-demo-checkout.otlp.json --contracts --out out/otel-contracts/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  \u00b7  SYNTHETIC trace + SYNTHETIC example code in examples/astronomy-shop\""
-  },
-  "devDependencies": {
-    "playwright": "1.64.0"
+    "build:contracts": "node engine/build.mjs samples/otel-demo-checkout.otlp.json --contracts --out out/otel-contracts/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC trace + SYNTHETIC example code in examples/astronomy-shop\""
   },
   "license": "MIT",
   "bin": {
     "transit": "scripts/transit.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.64.0"
   }
 }

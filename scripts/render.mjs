@@ -7,7 +7,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { build } from '../engine/build.mjs';
 await ensureSetup({ need: ['deps', 'browser', 'ffmpeg'] });
-const { chromium } = await import('playwright');
+const { launchBrowser } = await import('../engine/tools.mjs');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2); const opt = {}; const pos = [];
@@ -21,7 +21,7 @@ const name = opt.name || 'trace';
 const dir = resolve(opt['out-dir'] || join(ROOT, 'out', name));
 const frames = opt.frames || join(dir, 'frames');
 const { out: html } = build(resolve(pos[0]), { ...opt, out: join(dir, 'transit.html') });
-const browser = await chromium.launch();
+const browser = await launchBrowser();
 const page = await browser.newPage();
 await page.goto(pathToFileURL(html).href + '?paused=1');
 const { seconds, fps, msPerSec } = await page.evaluate(() => window.VIZ);

@@ -9,7 +9,9 @@ description: Use when the user wants to visualize, animate or share how a reques
 
 # Transit
 
-A public transit map for your requests. Everything runs locally; no span data leaves the machine.
+A public transit map for your requests.
+
+🔒 Runs entirely on the user's machine; traces never leave it. No telemetry, tracking or analytics. The built page makes no network requests. The only network use is first-run setup downloads and the optional fetch scripts against the user's own backend.
 
 ## Where things are
 
@@ -20,12 +22,18 @@ so results land in the user's working directory, not inside the skill folder.
 
 ## First run
 
-Every script checks its own prerequisites the first time it runs (`scripts/setup.mjs`) and caches
-the result in `.transit-cache/setup.json`, so later runs skip the check:
-Node 18+ (required; can't be auto-installed), npm deps and Playwright Chromium (installed
-automatically, no prompt), and ffmpeg for MP4/GIF only (installed with `brew` on macOS when
-Homebrew is present, otherwise the script stops with the install command for the OS). Run
-`node scripts/setup.mjs --force` to re-check; `TRANSIT_SKIP_SETUP=1` skips it.
+Every script checks its own prerequisites the first time (`scripts/setup.mjs`) and records the result in
+`.transit-cache/setup.json`. It reuses before it downloads:
+
+- **Browser:** Playwright's cached build, then any cached Chromium, then system Chrome/Edge. Only if none launches does it download `chromium-headless-shell` (~100 MB, announced first).
+- **ffmpeg:** ffmpeg on PATH or in Homebrew paths; otherwise `brew install ffmpeg` on macOS, or opt-in `TRANSIT_FFMPEG_STATIC=1`.
+- **npm deps:** `playwright-core` only.
+
+`node scripts/setup.mjs --check` reports what would be used or downloaded and changes nothing. Tell the user before a download if they care about bandwidth. Other switches:
+
+- `--no-download` / `TRANSIT_NO_DOWNLOAD=1` forbids downloads.
+- `TRANSIT_BROWSER=/path|chrome|msedge` forces a browser.
+- `TRANSIT_SKIP_SETUP=1` skips the check.
 
 ## Steps
 

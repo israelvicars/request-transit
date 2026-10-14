@@ -10,8 +10,9 @@ import { createHash } from 'node:crypto';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ensureSetup } from './setup.mjs';
+import { ffmpegBin, ffprobeBin } from '../engine/tools.mjs';
 await ensureSetup({ need: ['deps', 'browser', 'ffmpeg'] });
-const { chromium } = await import('playwright');
+const { launchBrowser } = await import('../engine/tools.mjs');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2); const opt = {}; const pos = [];
@@ -34,7 +35,7 @@ ok(A.length === B.length && diff.length === 0, `determinism: ${A.length} frames 
 rmSync(runB, { recursive: true, force: true });
 
 // 2. timing from the page model
-const browser = await chromium.launch(); const page = await browser.newPage();
+const browser = await launchBrowser(); const page = await browser.newPage();
 await page.goto(pathToFileURL(join(dir, 'transit.html')).href + '?paused=1');
 const V = await page.evaluate(() => ({ ...window.VIZ, trainsAt: undefined, frameOfTraceMs: undefined }));
 let bad = 0;
@@ -48,7 +49,7 @@ await browser.close();
 
 // 3. ffmpeg gates
 const mp4 = join(dir, 'anim.mp4');
-const ff = (vf) => { try { return execFileSync('ffmpeg', ['-hide_banner', '-i', mp4, '-vf', vf, '-an', '-f', 'null', '-'], { stdio: ['ignore', 'pipe', 'pipe'] }).toString(); } catch (e) { return String(e.stderr); } };
+const ff = (vf) => { try { return execFileSync(ffmpegBin(), ['-hide_banner', '-i', mp4, '-vf', vf, '-an', '-f', 'null', '-'], { stdio: ['ignore', 'pipe', 'pipe'] }).toString(); } catch (e) { return String(e.stderr); } };
 const ffe = (vf) => { const r = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i "${mp4}" -vf "${vf}" -an -f null - 2>&1`]).toString(); return r; };
 const maxStill = V.intro + 1.75 + 0.6;
 const fz = ffe('freezedetect=n=0.0005:d=' + maxStill.toFixed(2));

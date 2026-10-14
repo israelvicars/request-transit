@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve, dirname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 await (await import('./setup.mjs')).ensureSetup({ need: ['deps', 'browser'] });
-const { chromium } = await import('playwright');
+const { launchBrowser } = await import('../engine/tools.mjs');
 const argv = process.argv.slice(2);
 const file = argv.find((a) => !a.startsWith('--')) || 'out/otel/transit.html';
 const shot = argv.includes('--shot') ? argv[argv.indexOf('--shot') + 1] : null;
@@ -13,7 +13,7 @@ const cshot = argv.includes('--contracts-shot') ? argv[argv.indexOf('--contracts
 const sdir = argv.includes('--scroll-shots') ? argv[argv.indexOf('--scroll-shots') + 1] : null;
 let fails = 0;
 const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) fails++; };
-const browser = await chromium.launch();
+const browser = await launchBrowser();
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const url = pathToFileURL(resolve(file)).href;
 await page.goto(url + '?paused');

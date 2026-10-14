@@ -11,10 +11,12 @@ Turn one distributed trace into an animated subway map: services are lines, call
 Use it as an agent skill next to your observability MCP servers, open the interactive page, or render a frame-exact MP4/GIF for a PR, an incident doc or chat.
 </p>
 
+<p align="center">🔒 <b>Runs entirely on your machine. Your traces never leave it.</b><br>No telemetry, no tracking, no analytics, and there never will be.</p>
+
 <p align="center"><sub>The GIF above was rendered by Transit from <code>samples/otel-demo-checkout.otlp.json</code> (a synthetic trace).</sub></p>
 
 > [!NOTE]
-> Pre-release. Nothing is published yet (no npm package, no public repo). All sample data in this repo is synthetic.
+> Early release (0.1). Not on npm. All sample data in this repo is synthetic.
 
 ## Quickstart
 
@@ -26,11 +28,48 @@ npm run render    # out/otel/anim.mp4 + anim.gif + contact.png
 
 Your own trace: `node scripts/render.mjs path/to/trace.json --name mine --title "Checkout, Tuesday 14:02"`.
 
-The first run sets itself up. It checks for Node 18+, installs npm deps and Playwright Chromium if they are missing, and installs ffmpeg with Homebrew on macOS (on Linux it prints the `apt`/`dnf` command). The result is cached in `.transit-cache/setup.json`; `node scripts/setup.mjs --force` re-checks.
+The first run sets itself up and **reuses what you already have** before downloading anything:
+
+- **Browser:** the first one that launches, in this order:
+  - Playwright's own build, if another project already downloaded it.
+  - Any other Chromium in the Playwright cache.
+  - Your installed Google Chrome or Microsoft Edge.
+  - Only if none of those works, a ~100 MB `chromium-headless-shell` download, announced before it starts.
+- **ffmpeg:** ffmpeg on your PATH or in the Homebrew locations. If it's missing: `brew install ffmpeg` on macOS (announced first), or opt-in `TRANSIT_FFMPEG_STATIC=1`.
+- **npm deps:** a single dependency, `playwright-core` (~13 MB).
+
+`node scripts/setup.mjs --check` reports what would be used or downloaded and changes nothing. Flags and settings:
+
+- `--no-download` / `TRANSIT_NO_DOWNLOAD=1` never downloads.
+- `TRANSIT_BROWSER=/path|chrome|msedge` forces a browser.
+- `TRANSIT_SKIP_SETUP=1` skips the check.
+
+`.transit-cache/setup.json` records what was reused and what was installed. Two renders on the same machine and browser are byte-identical; different browsers or builds can differ by a few anti-aliased pixels.
 
 ## Use it from your agent
 
-Transit is an [Agent Skill](https://agentskills.io): a folder with a `SKILL.md`. Link this checkout into your client's skills folder, then ask something like *"draw trace 4bf92f… as a transit map"*.
+Transit is an [Agent Skill](https://agentskills.io): a folder with a `SKILL.md`. Install it, then ask something like *"draw trace 4bf92f… as a transit map"*.
+
+**Any agent, one command** (via the open [`skills`](https://github.com/vercel-labs/skills) installer):
+
+```sh
+npx skills add israelvicars/request-transit -g -a claude-code -a codex -a cursor
+```
+
+This puts the skill in `~/.agents/skills/request-transit` (read by Codex and Cursor) and symlinks it into `~/.claude/skills/` for Claude Code.
+
+**Claude Code plugin** (this repo is also a plugin marketplace):
+
+```sh
+claude plugin marketplace add israelvicars/request-transit
+claude plugin install request-transit@request-transit
+```
+
+The skill then appears as `/request-transit:request-transit`. Plugin installs are versioned copies, so first-run setup reinstalls npm deps after each plugin update. Browser and ffmpeg are reused.
+
+**Codex built-in installer:** inside Codex, run `$skill-installer install https://github.com/israelvicars/request-transit`.
+
+**From a clone (symlink):**
 
 | Client | User-level install (from this checkout) | Project-level |
 | --- | --- | --- |
@@ -95,10 +134,15 @@ Each frame is a pure function `renderAt(t)`: no clock, no timers, no randomness.
 
 ## Privacy
 
-- **Local only.** Traces are processed on your machine. `transit.html` inlines its data, fonts and icon, and makes no network calls when you open it.
-- **Redaction before render.** Attribute keys that look like PII (user, email, token, auth, cookie, session, card, client IP…) are dropped at build time. Add more with `--redact k1,k2`. See [`references/adapters.md`](references/adapters.md#privacy).
-- **Keys from env only.** The fetch scripts read `DD_*`, `POSTHOG_*` or your AWS CLI profile from the environment and never write them anywhere.
-- **Code stays put.** The contract layer runs only when asked. The skill asks the user first, and its cache lives in `.transit-cache/` (gitignored).
+🔒 **Runs entirely on your machine. Your traces never leave it. No telemetry, no tracking, no analytics, and there never will be.**
+
+- **Local processing.** Parsing, layout, rendering and video export run locally (Node, a headless browser on your machine, ffmpeg). Nothing is uploaded.
+- **A self-contained page.** `transit.html` inlines its data, script, fonts and icon. It loads nothing from a CDN, fetches no fonts and sends no beacons. `npm run test:network` opens the built page (with and without contracts), plays it, drives the panel and **fails on any network request**.
+- **The only network use:**
+  - First-run setup downloads, only when missing and announced first: npm deps, the headless browser, ffmpeg.
+  - The optional fetch scripts (`scripts/fetch.mjs …`), which you run against **your own** Datadog, PostHog, AWS or Tempo account with keys from your environment. They never write keys anywhere.
+- **Redaction before render.** Attribute keys that look like PII (user, email, token, auth, cookie, session, card, client IP…) are dropped at build time. Add more with `--redact k1,k2`. Request and response payloads are never shown (tracers don't record them). See [`references/adapters.md`](references/adapters.md#privacy).
+- **Your code stays put.** The contract layer runs only when you ask, and the skill asks first. It reads your repos locally and caches results in `.transit-cache/`, which is gitignored and never committed.
 
 ## Project layout
 

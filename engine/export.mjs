@@ -14,6 +14,7 @@
 import { execFileSync } from 'node:child_process';
 import { readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { ffmpegBin, ffprobeBin } from './tools.mjs';
 
 const argv = process.argv.slice(2);
 const what = argv[0] && !argv[0].startsWith('--') ? argv[0] : 'all';
@@ -29,8 +30,8 @@ const files = readdirSync(FR).filter((f) => /^\d{4}\.png$/.test(f)).sort();
 const N = files.length;
 if (!N) { console.error(`no frames in ${FR}`); process.exit(1); }
 const pattern = join(FR, '%04d.png');
-const ff = (args) => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
-const probeFrames = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-count_frames', '-select_streams', 'v',
+const ff = (args) => execFileSync(ffmpegBin(), ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+const probeFrames = (f) => Number(execFileSync(ffprobeBin(), ['-v', 'error', '-count_frames', '-select_streams', 'v',
   '-show_entries', 'stream=nb_read_frames', '-of', 'csv=p=0', f]).toString().trim());
 
 console.log(`${N} frames in ${FR} at ${FPS} fps = ${(N / FPS).toFixed(3)} s`);
@@ -66,7 +67,7 @@ if (what === 'all' || what === 'loop') {
     console.log(`loop  ${f} (3 plays back to back, watch the seam)`);
   }
   // SSIM between each frame and the next (N-1 values), then the seam: frame N-1 vs frame 0.
-  const ssim = (args) => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', ...args,
+  const ssim = (args) => execFileSync(ffmpegBin(), ['-hide_banner', '-loglevel', 'error', ...args,
     '-lavfi', 'ssim=stats_file=-', '-f', 'null', '-'], { maxBuffer: 1 << 26 }).toString()
     .trim().split('\n').map((l) => Number((l.match(/All:([\d.]+)/) || [])[1])).filter((x) => !Number.isNaN(x));
   const inner0 = N > 1 ? ssim(['-framerate', String(FPS), '-i', pattern,
