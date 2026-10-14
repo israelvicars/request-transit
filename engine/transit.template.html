@@ -372,7 +372,9 @@ function drawAlerts(tm) {
       ctx.fillStyle = '#fff'; ctx.beginPath(); const tx = cx - w / 2 + 12, ty = y + 10; ctx.moveTo(tx, ty - 6); ctx.lineTo(tx + 6, ty + 5); ctx.lineTo(tx - 6, ty + 5); ctx.closePath(); ctx.fill();
       ctx.fillStyle = C.err; ctx.font = font(700, 9); ctx.textAlign = 'center'; ctx.fillText('!', tx, ty + 2);
       ctx.fillStyle = '#fff'; ctx.font = font(700, 12); ctx.textAlign = 'left'; ctx.fillText(txt, cx - w / 2 + 24, y + 10.5);
-      ctx.fillStyle = C.err; ctx.font = font(400, 12); ctx.textAlign = right ? 'left' : 'center'; ctx.fillText(why, right ? cx - w / 2 : cx, y + 34);
+      ctx.font = font(400, 12); const ww = ctx.measureText(why).width, wx = right ? cx - w / 2 : cx - ww / 2;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(wx - 3, y + 23, ww + 6, 15);
+      ctx.fillStyle = C.err; ctx.textAlign = 'left'; ctx.fillText(why, wx, y + 34);
       y += 44;
     }
   }
