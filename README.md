@@ -32,13 +32,17 @@ The first run sets itself up. It checks for Node 18+, installs npm deps and Play
 
 Transit is an [Agent Skill](https://agentskills.io): a folder with a `SKILL.md`. Link this checkout into your client's skills folder, then ask something like *"draw trace 4bf92f… as a transit map"*.
 
-| Client | Install (from this checkout) |
-| --- | --- |
-| **Claude Code** | `ln -s "$PWD" ~/.claude/skills/transit` (or `.claude/skills/transit` inside one repo) |
-| **Cursor** | `ln -s "$PWD" ~/.cursor/skills/transit` (Cursor also reads `~/.claude/skills`) |
-| **Codex** | `ln -s "$PWD" ~/.agents/skills/transit` (or `.agents/skills/transit` inside one repo) |
+| Client | User-level install (from this checkout) | Project-level |
+| --- | --- | --- |
+| **Claude Code** | `ln -s "$PWD" ~/.claude/skills/request-transit` | `.claude/skills/request-transit` |
+| **Codex** | `ln -s "$PWD" ~/.agents/skills/request-transit` | `.agents/skills/request-transit` |
+| **Cursor** | `ln -s "$PWD" ~/.cursor/skills/request-transit` (Cursor also reads `~/.agents/skills` and `~/.claude/skills`) | `.cursor/skills/request-transit` |
 
-Folder locations come from each client's docs: [Claude Code](https://code.claude.com/docs/en/skills), [Cursor](https://cursor.com/docs/skills), [Codex](https://developers.openai.com/codex/skills).
+The folder name must be `request-transit` (Cursor requires it to match the skill `name`). All three follow symlinks.
+Locations are from the official docs: [Claude Code](https://code.claude.com/docs/en/skills), [Codex](https://developers.openai.com/codex/skills), [Cursor](https://cursor.com/docs/skills).
+
+> [!IMPORTANT]
+> Rendering video launches headless Chromium. Codex's default `workspace-write` sandbox on macOS blocks that, so the skill stops and says so. Run that step with more access (for example `codex exec -s danger-full-access`) or render outside the sandbox. Claude Code works with its normal permission prompts. Details: [`references/agent-testing.md`](references/agent-testing.md).
 
 ### Next to MCP, not instead of it
 
