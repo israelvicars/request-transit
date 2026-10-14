@@ -320,11 +320,12 @@ function drawStations(tm) {
     const active = spansAt(n).some((s) => tm >= s.start && tm < s.end && showInStrip(s));
     const visited = n.first <= tm;
     const r = 9;
+    ctx.globalAlpha = visited ? 1 : 0.45;
     ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.fillStyle = '#fff';
     if (n.transfer) rr(n.x - r, n.y + n.top - r, 2 * r, n.bot - n.top + 2 * r, r);
     else { ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 2 * Math.PI); }
     if (n.inferred) ctx.setLineDash([3, 3]);
-    ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fill(); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
     if (active) { ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(n.x, n.y, 4.5, 0, 2 * Math.PI); ctx.fill(); }
     // label: bullet + name above the station
     const ly = n.y + n.top - r - 10;
