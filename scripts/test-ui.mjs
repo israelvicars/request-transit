@@ -8,6 +8,8 @@ const { chromium } = await import('playwright');
 const argv = process.argv.slice(2);
 const file = argv.find((a) => !a.startsWith('--')) || 'out/otel/transit.html';
 const shot = argv.includes('--shot') ? argv[argv.indexOf('--shot') + 1] : null;
+const cfile = argv.includes('--contracts-page') ? argv[argv.indexOf('--contracts-page') + 1] : null;
+const cshot = argv.includes('--contracts-shot') ? argv[argv.indexOf('--contracts-shot') + 1] : null;
 let fails = 0;
 const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) fails++; };
 const browser = await chromium.launch();
@@ -67,7 +69,17 @@ await page.keyboard.press('Home'); await page.keyboard.press('n'); await page.ke
 const link = page.locator('#panel a[data-span]').first();
 const linkId = await link.getAttribute('data-span');
 await link.click(); s = await st(); ok(s.selected === linkId, 'parent/child link selects that span');
-ok((await page.textContent('#panel')).includes('Contracts not indexed'), 'contract placeholder present');
+ok((await page.textContent('#panel')).includes('Contracts not indexed'), 'not-indexed note when built without --contracts');
+// redesigned panel pieces
+await page.keyboard.press('Home'); for (let k = 0; k < 4; k++) await page.keyboard.press('n');
+ok(await page.isVisible('#panel .sign .bul'), 'station-sign header with line bullet');
+ok(await page.isVisible('#panel .wf .wf-span'), 'mini waterfall');
+const stops = await page.locator('#panel .crumbs .stop').count(); ok(stops >= 2, `breadcrumb has ${stops} stops`);
+await page.locator('#panel .crumbs .stop').first().click(); s = await st();
+ok(s.selected === (await page.evaluate(() => window.TRACE.spans.find((x) => !x.parentId).spanId)), 'breadcrumb first stop selects the root');
+await page.keyboard.press('Home'); await page.keyboard.press('n'); await page.keyboard.press('n');
+ok(await page.locator('#panel .ag').count() >= 1, 'attributes grouped');
+ok(await page.locator('#panel button:has-text("Copy")').count() === 0, 'no copy buttons');
 // deep link
 const p2 = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 await p2.goto(url + '#span=' + encodeURIComponent(hops[2].spanId));
@@ -76,8 +88,36 @@ ok(s.selected === hops[2].spanId && !s.playing, 'deep link #span= selects and pa
 if (shot) {
   mkdirSync(dirname(resolve(shot)), { recursive: true });
   await p2.keyboard.press('Shift+ArrowRight'); await p2.keyboard.press('ArrowRight'); await p2.keyboard.press('ArrowRight'); await p2.keyboard.press('ArrowRight');
-  await p2.screenshot({ path: shot, clip: { x: 0, y: 0, width: 1580, height: 900 } });
+  await p2.screenshot({ path: shot, clip: { x: 0, y: 0, width: 1600, height: 900 } });
   console.log('screenshot', resolve(shot));
+}
+if (cfile) {
+  const pc = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  const curl = pathToFileURL(resolve(cfile)).href;
+  await pc.goto(curl + '?paused');
+  const ch = await pc.evaluate(() => window.TRANSIT_UI.hops);
+  let pg = pc;
+  const sel = async (pred) => { const h = ch.find(pred); pg = await browser.newPage({ viewport: { width: 1600, height: 1000 } }); await pg.goto(curl + '?paused#span=' + encodeURIComponent(h.spanId)); return pg.textContent('#panel'); };
+  let txt = await sel((h) => h.to === 'checkout');
+  ok(/MATCHED/.test(txt) && /Request/i.test(txt) && /userCurrency/.test(txt) && /validator · class-validator/.test(txt), 'checkout hop: matched, request card with fields + validator badge');
+  ok(await pg.locator('#panel .card .conf').count() >= 2, 'confidence dots on both cards');
+  txt = await sel((h) => h.to === 'email');
+  ok(/No response type found\. Not guessed/.test(txt), 'email hop: response gap shown honestly');
+  txt = await sel((h) => h.to === 'valkey-cart');
+  ok(/Infrastructure hop/.test(txt), 'valkey hop: infrastructure');
+  txt = await sel((h) => h.to === 'product-catalog');
+  ok(/Unmatched/.test(txt) && /catalog\.proto/.test(txt), 'product-catalog hop: unmatched with reason');
+  txt = await sel((h) => h.to === 'fraud-detection');
+  ok(/FALLBACK/.test(txt) && /medium/.test(txt), 'fraud-detection hop: producer-shape fallback, medium');
+  txt = await sel((h) => h.to === 'frontend');
+  ok(/shared package/.test(txt) && /packages\/shop-schemas/.test(txt), 'frontend hop: cross-package schema source');
+  ok((await pc.textContent('#hops')).includes('matched'), 'hop table shows contract state');
+  if (cshot) {
+    await sel((h) => h.to === 'shipping');
+    mkdirSync(dirname(resolve(cshot)), { recursive: true });
+    await pg.screenshot({ path: cshot, clip: { x: 0, y: 0, width: 1600, height: 900 } });
+    console.log('screenshot', resolve(cshot));
+  }
 }
 // render mode hides UI
 const p3 = await (await browser.newContext({ viewport: { width: 1200, height: 900 } })).newPage();

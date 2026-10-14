@@ -19,25 +19,71 @@
   #hops td, #hops th { text-align: left; padding: 3px 8px; border-bottom: 1px solid #eee; }
   #wrap { display: flex; align-items: flex-start; }
   #main { width: 1200px; flex: none; }
-  #panel { width: 380px; flex: none; box-sizing: border-box; height: 900px; overflow: auto; border-left: 2px solid #111; padding: 0 18px 24px; font-size: 13px; position: sticky; top: 0; }
-  #panel .hdr { display: flex; justify-content: space-between; align-items: center; background: #111; color: #fff; margin: 0 -18px 12px; padding: 10px 18px; font-weight: 700; letter-spacing: .04em; }
-  #panel .hdr button { background: none; border: 0; color: #fff; font-size: 20px; cursor: pointer; }
-  #panel h2 { font-size: 18px; margin: 6px 0 10px; word-break: break-word; }
+  #panel { width: 400px; flex: none; box-sizing: border-box; height: 900px; overflow: auto; border-left: 2px solid #111; padding: 0 18px 24px; font-size: 13px; position: sticky; top: 0; }
+  #panel .sign { background: #111; color: #fff; margin: 0 -18px 12px; padding: 12px 18px 10px; }
+  #panel .sign .st { display: flex; align-items: center; gap: 10px; }
+  #panel .sign .sn { font-weight: 700; font-size: 22px; flex: 1; word-break: break-word; }
+  #panel .sign::after { content: ""; display: block; width: 40px; height: 4px; background: #fff; margin-top: 8px; }
+  #panel .sign .sub { font-size: 11px; letter-spacing: .06em; color: #CFCFCF; margin-top: 6px; text-transform: uppercase; }
+  #panel .sign button { background: none; border: 0; color: #fff; font-size: 22px; cursor: pointer; }
+  #panel .bul { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; font-weight: 700; flex: none; }
+  #panel .bul.sq { border-radius: 4px; }
+  #panel h2 { font-size: 16px; margin: 4px 0 10px; word-break: break-word; }
   #panel h3 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #4A4A4A; margin: 18px 0 6px; }
-  #panel table { border-collapse: collapse; width: 100%; }
-  #panel th { text-align: left; color: #4A4A4A; font-weight: 400; padding: 3px 8px 3px 0; vertical-align: top; white-space: nowrap; }
-  #panel td { padding: 3px 0; word-break: break-word; }
-  #panel table.attrs th { white-space: normal; word-break: break-all; font-family: ui-monospace, monospace; font-size: 11px; width: 45%; }
   #panel ul { margin: 0; padding: 0; list-style: none; }
   #panel a { color: #111; text-decoration: none; display: block; padding: 3px 0; }
   #panel a:hover { text-decoration: underline; }
   #panel .dot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; margin-right: 6px; }
-  #panel .route { color: #4A4A4A; }
   #panel .muted { color: #9A9A9A; margin: 4px 0; }
+  #panel .mono, #panel code, #panel .src { font-family: ui-monospace, monospace; font-size: 11px; }
   #panel .tag { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 8px; background: #E7E7E7; }
-  #panel .tag.err { background: #D42A1E; color: #fff; } #panel .tag.slow { background: #E89A00; }
-  #panel .contract { border: 2px dashed #9A9A9A; padding: 10px; color: #4A4A4A; border-radius: 6px; }
-  #panel .empty { padding-top: 40px; color: #4A4A4A; }
+  #panel .tag.err { background: #D42A1E; color: #fff; } #panel .tag.slow { background: #E89A00; } #panel .tag.ok { background: #111; color: #fff; }
+  #panel .crumbs { display: flex; align-items: flex-start; margin: 6px 0 12px; overflow-x: auto; }
+  #panel .crumbs .stop { display: flex; flex-direction: column; align-items: center; padding: 0; min-width: 0; flex: none; max-width: 72px; }
+  #panel .crumbs .sd { width: 10px; height: 10px; border: 3px solid; border-radius: 50%; background: #fff; }
+  #panel .crumbs .sl { font-size: 10px; color: #4A4A4A; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 72px; }
+  #panel .crumbs .here .sl { color: #111; font-weight: 700; }
+  #panel .crumbs .seg { flex: 1; min-width: 8px; height: 3px; background: #D0D0D0; margin-top: 7px; }
+  #panel .wf { position: relative; height: 16px; margin: 4px 0 2px; }
+  #panel .wf-parent { position: absolute; inset: 6px 0; background: #E7E7E7; border-radius: 2px; }
+  #panel .wf-span { position: absolute; top: 0; height: 16px; min-width: 2px; border-radius: 3px; overflow: hidden; }
+  #panel .wf-span i { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,.6); }
+  #panel .wf-cap { display: flex; justify-content: space-between; font-size: 11px; color: #4A4A4A; }
+  #panel .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 6px; }
+  #panel .stat { background: #F4F4F4; padding: 5px 6px; border-radius: 4px; }
+  #panel .stat span { display: block; font-size: 10px; color: #4A4A4A; text-transform: uppercase; letter-spacing: .05em; }
+  #panel .stat b { font-size: 12px; }
+  #panel .status { margin: 4px 0; color: #4A4A4A; } #panel .status.err { color: #D42A1E; }
+  #panel .match { margin: 0 0 8px; }
+  #panel .card { border: 2px solid #111; border-radius: 6px; margin: 0 0 10px; overflow: hidden; }
+  #panel .card.gap { border-style: dashed; border-color: #9A9A9A; color: #4A4A4A; }
+  #panel .card.infra { border-style: dotted; border-color: #8C8C8C; }
+  #panel .card .ch { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #E7E7E7; }
+  #panel .card .ch b { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  #panel .card .cn { font-family: ui-monospace, monospace; font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #panel .card .conf { font-size: 11px; color: #4A4A4A; display: flex; align-items: center; gap: 4px; }
+  #panel .card .conf i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  #panel .card .badges { padding: 6px 10px 0; display: flex; gap: 6px; flex-wrap: wrap; }
+  #panel .badge { font-size: 10px; padding: 1px 6px; border-radius: 8px; border: 1px solid #111; }
+  #panel .badge.v { background: #111; color: #fff; } #panel .badge.t { background: #fff; } #panel .badge.o { border-color: #CFCFCF; color: #4A4A4A; }
+  #panel .card .cb { padding: 6px 10px 8px; }
+  #panel .card .f { display: flex; gap: 6px; align-items: baseline; padding: 1px 0; font-size: 12px; }
+  #panel .card .req { width: 10px; font-size: 9px; color: #111; flex: none; }
+  #panel .card .fn { font-family: ui-monospace, monospace; }
+  #panel .card .ft { color: #2A62C9; font-family: ui-monospace, monospace; font-size: 11px; }
+  #panel .card .fc { color: #9A9A9A; font-size: 10px; }
+  #panel .card .src, #panel .match .src { padding: 0 10px 6px; color: #4A4A4A; }
+  #panel .match .src { padding: 2px 0 0; }
+  #panel .note { font-size: 11px; color: #9A5B26; padding: 0 10px 6px; }
+  #panel .match .note { padding: 2px 0 0; }
+  #panel .ag { margin: 0 0 8px; }
+  #panel .agh { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid #E7E7E7; padding: 2px 0; display: flex; justify-content: space-between; }
+  #panel .agh span { color: #9A9A9A; font-weight: 400; }
+  #panel .kv { display: flex; gap: 8px; padding: 2px 0; font-size: 12px; }
+  #panel .kv .k { font-family: ui-monospace, monospace; font-size: 11px; color: #4A4A4A; width: 46%; word-break: break-all; flex: none; }
+  #panel .kv .v { word-break: break-word; }
+  #panel details summary { font-size: 11px; color: #4A4A4A; cursor: pointer; padding: 2px 0; }
+  #panel .empty { padding-top: 10px; color: #4A4A4A; }
   kbd { font: 700 11px ui-monospace, monospace; border: 1px solid #111; border-radius: 4px; padding: 1px 5px; background: #fff; }
   #speed { display: flex; gap: 0; } #speed button { min-width: 0; border-radius: 0; padding: 6px 10px; margin-left: -2px; }
   #speed button:first-child { border-radius: 18px 0 0 18px; } #speed button:last-child { border-radius: 0 18px 18px 0; }
@@ -495,7 +541,13 @@ const infraHops = calls.filter((c) => nodes.get(c.to).inferred).length;
 function drawFooter() {
   ctx.font = font(400, 12); ctx.fillStyle = C.ink2; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   const syn = D.meta && D.meta.synthetic ? 'SYNTHETIC sample data  ·  ' : '';
-  ctx.fillText(`${syn}${spans.length} spans  ·  ${calls.length} hops (${infraHops} infrastructure, ${calls.length - infraHops} unmatched: no contract index)  ·  rendered locally by Transit`, 40, 872);
+  const CTX = window.CONTRACTS;
+  let tail = `${calls.length - infraHops} unmatched: no contract index`;
+  if (CTX) {
+    const st = calls.filter((c) => !nodes.get(c.to).inferred).map((c) => (CTX.bySpan[c.callee.spanId] || CTX.bySpan[c.span.spanId] || {}).state);
+    tail = `${st.filter((x) => x === 'matched' || x === 'fallback').length} matched to contracts, ${st.filter((x) => x !== 'matched' && x !== 'fallback').length} unmatched`;
+  }
+  ctx.fillText(`${syn}${spans.length} spans  ·  ${calls.length} hops (${infraHops} infrastructure, ${tail})  ·  rendered locally by Transit`, 40, 872);
 }
 function renderAt(t) {
   const tm = traceMsAt(t);
@@ -518,7 +570,7 @@ const hopsEl = document.getElementById('hops');
 if (hopsEl) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   hopsEl.innerHTML = '<h3>Hops</h3><table><tr><th>start</th><th>from</th><th>to</th><th>span</th><th>status</th><th>contract</th></tr>' +
-    hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? 'error' : c.slow ? 'slow' : 'ok'}</td><td>${nodes.get(c.to).inferred ? 'infrastructure hop' : 'unmatched (contracts not indexed)'}</td></tr>`).join('') + '</table>';
+    hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? 'error' : c.slow ? 'slow' : 'ok'}</td><td>${(() => { const m = window.CONTRACTS && (window.CONTRACTS.bySpan[c.callee.spanId] || window.CONTRACTS.bySpan[c.span.spanId]); if (!window.CONTRACTS) return nodes.get(c.to).inferred ? 'infrastructure hop' : 'unmatched (contracts not indexed)'; if (!m) return nodes.get(c.to).inferred ? 'infrastructure hop' : 'unmatched'; return m.state === 'unmatched' ? 'unmatched: ' + esc(m.reason) : m.state === 'infra' ? 'infrastructure hop' : esc(m.state + ' ' + m.key); })()}</td></tr>`).join('') + '</table>';
 }
 // ------------------------------------------------------------------ interactive layer (never runs in render mode)
 // renderAt(t) above stays a pure function of t. Selection, speed and the panel live here and only draw an
@@ -572,39 +624,123 @@ function setSpeed(s) {
   document.querySelectorAll('#speed button').forEach((b) => b.classList.toggle('on', Number(b.dataset.s) === s));
   show(T);
 }
-// ---- panel
+// ---- panel (interactive page only; hidden in renders)
 const panel = $('panel');
 const KIND = (k) => k || 'internal';
+const CT = window.CONTRACTS || null;
+const ENTRY = CT ? new Map(CT.entries.map((e) => [e.id, e])) : new Map();
+const nodeFor = (s) => nodes.get(nodeOf(s)) || nodes.get(s.service);
+// the contract that describes a hop: the callee's (server/consumer) span, or the client span for infra hops
+function contractOf(s) {
+  if (!CT) return null;
+  const c = hopOfSpan(s);
+  const span = c ? c.callee : s;
+  return CT.bySpan[span.spanId] || (c && CT.bySpan[c.span.spanId]) || null;
+}
+const bulletHtml = (n, size = 22) => n
+  ? `<span class="bul${n.inferred ? ' sq' : ''}" style="background:${n.color};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.6)}px">${n.inferred ? '' : esc(n.bullet)}</span>` : '';
 function spanLink(s) {
-  const n = nodes.get(nodeOf(s)) || nodes.get(s.service);
-  return `<a href="#span=${encodeURIComponent(s.spanId)}" data-span="${esc(s.spanId)}"><span class="dot" style="background:${n ? n.color : C.infra}"></span>${esc(s.service)} · ${esc(s.name)}</a>`;
+  return `<a href="#span=${encodeURIComponent(s.spanId)}" data-span="${esc(s.spanId)}"><span class="dot" style="background:${(nodeFor(s) || {}).color || C.infra}"></span>${esc(s.service)} · ${esc(s.name)}</a>`;
+}
+// mini waterfall: the span inside its parent's window; child time light, self time solid
+function waterfall(s) {
+  const p = s.parentId && byId.get(s.parentId);
+  const a = p ? p.start : 0, b = p ? p.end : TOTAL, w = Math.max(1e-9, b - a);
+  const pct = (x) => (100 * (clamp(x, a, b) - a) / w).toFixed(3) + '%';
+  const col = (nodeFor(s) || {}).color || C.ink;
+  const kidsIv = kids.get(s.spanId).map((k) => [Math.max(k.start, s.start), Math.min(k.end, s.end)]).filter((x) => x[1] > x[0]);
+  return `<div class="wf" title="${esc(s.name)} inside ${p ? esc(p.service + ' · ' + p.name) : 'the whole trace'}">` +
+    `<div class="wf-parent"></div>` +
+    `<div class="wf-span" style="left:${pct(s.start)};width:calc(${pct(s.end)} - ${pct(s.start)});background:${col}">` +
+    kidsIv.map(([x, y]) => `<i style="left:${(100 * (x - s.start) / (s.duration || 1)).toFixed(3)}%;width:${(100 * (y - x) / (s.duration || 1)).toFixed(3)}%"></i>`).join('') + `</div></div>` +
+    `<div class="wf-cap"><span>${p ? `in ${esc(p.service)} · ${fmtMs(p.duration)}` : `of the whole trace · ${fmtMs(TOTAL)}`}</span><span><b>${fmtMs(s.duration)}</b> · self <b>${fmtMs(s.self)}</b></span></div>`;
+}
+// breadcrumb: root to this span, one stop per service change (plus this span)
+function breadcrumb(s) {
+  const chain = []; for (let x = s; x; x = x.parentId && byId.get(x.parentId)) chain.unshift(x);
+  const stops = chain.filter((x, i) => i === chain.length - 1 || i === 0 || x.service !== chain[i - 1].service);
+  return `<div class="crumbs">` + stops.map((x, i) => {
+    const n = nodeFor(x), last = i === stops.length - 1;
+    return `<a class="stop${last ? ' here' : ''}" href="#span=${encodeURIComponent(x.spanId)}" data-span="${esc(x.spanId)}" title="${esc(x.service + ' · ' + x.name)}"><span class="sd" style="border-color:${n ? n.color : C.infra}${last ? `;background:${n ? n.color : C.infra}` : ''}"></span><span class="sl">${esc(x.service)}</span></a>`;
+  }).join('<span class="seg"></span>') + `</div>`;
+}
+// request / response cards
+const CONF = { high: ['#1C8F5A', 'high confidence'], medium: ['#E89A00', 'medium confidence'], low: ['#D42A1E', 'low confidence'] };
+const SRC = { zod: 'validator · zod', joi: 'validator · joi', 'class-validator': 'validator · class-validator', 'ts-types': 'type · TypeScript', openapi: 'spec · OpenAPI', none: 'declared', unresolved: 'unresolved' };
+function typeLabel(n) {
+  if (!n) return 'unknown';
+  if (n.unresolved) return `${n.ref || 'unknown'} (unresolved)`;
+  switch (n.t) {
+    case 'array': return `${n.items && n.items.t === 'object' ? (n.items.ref || 'object') : typeLabel(n.items)}[]`;
+    case 'enum': return n.values.map((v) => JSON.stringify(v)).join(' | ');
+    case 'union': return n.of.map(typeLabel).join(' | ');
+    case 'object': return n.ref || 'object';
+    default: return n.t;
+  }
+}
+function fieldRows(n, depth = 0) {
+  const obj = n && (n.t === 'object' ? n : n.t === 'array' && n.items && n.items.t === 'object' ? n.items : null);
+  if (!obj) return '';
+  if (depth > 3) return `<div class="f" style="padding-left:${depth * 14}px"><span class="muted">… deeper fields not shown</span></div>`;
+  return obj.props.map((p) => `<div class="f" style="padding-left:${depth * 14}px"><span class="req" title="${p.optional ? 'optional' : 'required'}">${p.optional ? '○' : '●'}</span><span class="fn">${esc(p.name)}</span><span class="ft">${esc(typeLabel(p.node))}</span>${p.node && p.node.c ? `<span class="fc">${esc(p.node.c.join(', '))}</span>` : ''}</div>` + fieldRows(p.node, depth + 1)).join('');
+}
+function card(title, side, gap) {
+  if (!side) return `<div class="card gap"><div class="ch"><b>${title}</b></div><div class="cb">${esc(gap)}. Not guessed.</div></div>`;
+  const [cc, cl] = CONF[side.confidence] || CONF.low;
+  const body = side.schema.t === 'void' ? '<div class="muted">no body (void)</div>'
+    : side.schema.t === 'object' || (side.schema.t === 'array' && side.schema.items && side.schema.items.t === 'object') ? fieldRows(side.schema)
+    : `<div class="f"><span class="ft">${esc(typeLabel(side.schema))}</span></div>`;
+  return `<div class="card"><div class="ch"><b>${title}</b>${side.name ? `<span class="cn">${esc(side.name)}${side.schema.t === 'array' ? '[]' : ''}</span>` : ''}<span class="conf" title="${cl}"><i style="background:${cc}"></i>${side.confidence}</span></div>` +
+    `<div class="badges"><span class="badge ${/^validator|^spec/.test(SRC[side.kind] || '') ? 'v' : 't'}">${esc(SRC[side.kind] || side.kind)}</span>${side.via ? `<span class="badge o">${esc(side.via)}</span>` : ''}${side.crossPackage ? '<span class="badge o">shared package</span>' : ''}</div>` +
+    `<div class="cb">${body}</div>` +
+    (side.notes && side.notes.length ? `<div class="note">${side.notes.map(esc).join('<br>')}</div>` : '') +
+    (side.source ? `<div class="src">${esc(side.source)}</div>` : '') + `</div>`;
+}
+function contractSection(s) {
+  const head = '<h3>Expected request / response</h3>';
+  if (!CT) return head + `<div class="card gap"><div class="cb">Contracts not indexed. The contract layer is optional: build an index with <code>transit index</code>, then build the page with <code>--contracts</code>.</div></div>`;
+  const m = contractOf(s);
+  if (!m) return head + `<div class="card gap"><div class="cb">No hop contract for this span (internal work inside ${esc(s.service)}).</div></div>`;
+  if (m.state === 'infra') return head + `<div class="card infra"><div class="ch"><b>Infrastructure hop</b><span class="cn">${esc(m.key)}</span></div><div class="cb">${esc(m.reason)}. No contract expected.</div></div>`;
+  if (m.state === 'unmatched') return head + `<div class="card gap"><div class="ch"><b>Unmatched</b><span class="cn">${esc(m.key)}</span></div><div class="cb">${esc(m.reason)}.</div></div>`;
+  const e = ENTRY.get(m.entryId);
+  return head + `<div class="match"><span class="tag ${m.state === 'fallback' ? 'slow' : 'ok'}">${m.state === 'fallback' ? 'FALLBACK' : 'MATCHED'}</span> ${esc(m.key)} <span class="muted">→ ${esc(e.service)} · ${esc(e.extractor)}</span><div class="src">${esc(e.source)}</div>${m.reason ? `<div class="note">${esc(m.reason)}</div>` : ''}</div>` +
+    card(e.kind === 'topic' ? 'Message' : 'Request', e.request, 'No request schema found') +
+    (e.kind === 'topic' ? '' : card('Response', e.response, 'No response type found'));
+}
+// attributes, grouped; the long tail of each group folds away
+const GROUPS = [['HTTP', /^(http|url)\./], ['DB', /^db\./], ['Messaging', /^(messaging|kafka)\./], ['RPC', /^rpc\./], ['Other', /./]];
+function attrGroups(s) {
+  const all = Object.entries(s.attrs || {}).sort(([a], [b]) => (a < b ? -1 : 1));
+  if (!all.length) return '<p class="muted">none</p>';
+  const used = new Set();
+  return GROUPS.map(([g, re]) => {
+    const rows = all.filter(([k]) => !used.has(k) && re.test(k)); rows.forEach(([k]) => used.add(k));
+    if (!rows.length) return '';
+    const r = ([k, v]) => `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${esc(typeof v === 'object' ? JSON.stringify(v) : v)}</span></div>`;
+    const head = rows.slice(0, 3), tail = rows.slice(3);
+    return `<div class="ag"><div class="agh">${g}<span>${rows.length}</span></div>${head.map(r).join('')}${tail.length ? `<details><summary>${tail.length} more</summary>${tail.map(r).join('')}</details>` : ''}</div>`;
+  }).join('');
 }
 function renderPanel() {
-  if (!sel) { panel.innerHTML = `<div class="empty"><b>No hop selected</b><p>Pause, press <kbd>N</kbd>, or click a station, train or line to inspect a hop.</p></div><h3>Shortcuts</h3>` + document.querySelector('#help table').outerHTML; return; }
+  if (!sel) { panel.innerHTML = `<div class="sign"><div class="st"><span class="sn">Transit</span></div><div class="sub">no hop selected</div></div><div class="empty"><p>Pause, press <kbd>N</kbd>, or click a station, train or line to inspect a hop.</p></div><h3>Shortcuts</h3>` + document.querySelector('#help table').outerHTML; return; }
   const s = sel, c = hopOfSpan(s), i = c ? hops.indexOf(c) : -1;
-  const p = s.parentId && byId.get(s.parentId), ch = kids.get(s.spanId).slice().sort((a, b) => a.start - b.start);
-  const attrs = Object.entries(s.attrs || {});
-  const row = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`;
+  const ch = kids.get(s.spanId).slice().sort((a, b) => a.start - b.start);
+  const n = c ? nodes.get(c.to) : nodeFor(s);
+  const stat = (k, v) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`;
   panel.innerHTML =
-    `<div class="hdr"><span class="hopn">${c ? `HOP ${i + 1} / ${hops.length}` : 'SPAN (no hop)'}</span><button id="pclose" title="Deselect (Esc)">×</button></div>` +
-    (c ? `<div class="route">${esc(c.from)} → ${esc(c.to)}${nodes.get(c.to).inferred ? ' <span class="tag">infrastructure</span>' : ''}</div>` : '') +
+    `<div class="sign"><div class="st">${bulletHtml(n, 26)}<span class="sn">${esc(n ? n.id : s.service)}</span><button id="pclose" title="Deselect (Esc)">×</button></div>` +
+    `<div class="sub">${c ? `HOP ${i + 1} / ${hops.length} · ${esc(c.from)} → ${esc(c.to)}` : 'SPAN (no hop)'}${n && n.inferred ? ' · infrastructure' : ''}</div></div>` +
     `<h2>${esc(s.name)}</h2>` +
-    `<table>` +
-    row('service', esc(s.service)) +
-    (s.resource && s.resource !== s.name ? row('resource', esc(s.resource)) : '') +
-    row('kind', esc(KIND(s.kind))) +
-    row('start', `+${fmtMs(s.start)}`) +
-    row('duration', fmtMs(s.duration)) +
-    row('self time', fmtMs(s.self) + (s.slow ? ' <span class="tag slow">DELAY</span>' : '')) +
-    row('status', s.status === 'error' ? `<span class="tag err">ERROR</span> ${esc(s.statusMessage || '')}` : esc(s.status || 'unset')) +
-    row('span id', `<code>${esc(s.spanId)}</code>`) +
-    `</table>` +
-    `<h3>Attributes</h3>` +
-    (attrs.length ? `<table class="attrs">${attrs.map(([k, v]) => row(esc(k), esc(typeof v === 'object' ? JSON.stringify(v) : v))).join('')}</table>` : '<p class="muted">none</p>') +
+    breadcrumb(s) +
+    waterfall(s) +
+    `<div class="stats">${stat('kind', esc(KIND(s.kind)))}${stat('start', '+' + fmtMs(s.start))}${stat('duration', fmtMs(s.duration))}${stat('self', fmtMs(s.self) + (s.slow ? ' <span class="tag slow">DELAY</span>' : ''))}</div>` +
+    `<div class="status ${s.status === 'error' ? 'err' : ''}">${s.status === 'error' ? `<span class="tag err">SERVICE ALERT</span> ${esc(s.statusMessage || 'error')}` : `status <b>${esc(s.status || 'unset')}</b>`}${s.resource && s.resource !== s.name ? ` · resource <b>${esc(s.resource)}</b>` : ''}</div>` +
+    contractSection(s) +
+    `<h3>Attributes</h3>` + attrGroups(s) +
     `<p class="muted">${D.meta && D.meta.redacted ? `${D.meta.redacted} attribute(s) redacted across this trace before rendering.` : 'Sensitive-looking keys are redacted at build time.'}</p>` +
-    `<h3>Parent</h3>${p ? spanLink(p) : '<p class="muted">root span</p>'}` +
     `<h3>Children (${ch.length})</h3>${ch.length ? '<ul>' + ch.map((k) => `<li>${spanLink(k)}</li>`).join('') + '</ul>' : '<p class="muted">none</p>'}` +
-    `<h3>Expected request / response</h3><div class="contract">Contracts not indexed. A future contract layer will show the expected request and response for this hop here.</div>`;
+    `<p class="muted mono">span ${esc(s.spanId)}</p>`;
 }
 function select(s, jump = true) {
   sel = s || null;

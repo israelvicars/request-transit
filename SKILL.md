@@ -52,7 +52,7 @@ Open `out/<name>/transit.html` in a browser. Video renders hide all of this, and
 - **Time:** `←` / `→` seek 0.5 s, `,` / `.` one frame, `Home` / `End`, `Space` play/pause. Pausing selects the hop in progress, and playing clears the selection.
 - **Speed:** `1` / `2` / `3` = 0.5x / 1x / 2x, or the speed buttons.
 - **Click:** a station, train, line or strip tick to select that hop. Clicking empty map toggles play.
-- **Side panel:** service, name/resource, kind, start, duration, self time, status/error, attributes (already redacted), plus parent and child links you can click. Also a placeholder for the expected request/response (contracts not indexed yet).
+- **Side panel:** station-sign header (line bullet + service), a breadcrumb of stops from the root, a mini waterfall (this hop inside its parent, self time solid), kind/start/duration/self, status/error, the expected request/response cards, grouped attributes (HTTP, DB, messaging, RPC, other; the long tail folds away) and child links. The panel also shows the expected request/response when the page was built with contracts (see below).
 - **Links:** `#span=<id>` (or `?span=` / `?pin=`) selects a span. `?` shows the shortcut help, and `Esc` closes it or deselects.
 - **Tests:** `npm run test:ui` runs the Playwright keyboard and click tests.
 
@@ -62,3 +62,15 @@ Open `out/<name>/transit.html` in a browser. Video renders hide all of this, and
 - CLI (headless, **untested live**): `node scripts/fetch.mjs xray <1-xxxxxxxx-… or 32-hex id>` writes `traces/<id>.xray.json`, and `node scripts/fetch.mjs xray --find --filter 'fault = true'` lists candidate ids. Uses the user's AWS CLI credentials; never store keys.
 - MCP (interactive): if the AWS Labs CloudWatch Application Signals MCP server is connected, call `get_xray_trace`, save the result to a file, then use the file. Check the saved shape first; it has not been verified live.
 - X-Ray samples about 5% of requests by default, so a specific request may have no trace.
+
+## Contract layer (optional: ask first)
+
+This layer reads the user's source code, so it is never run by default.
+
+1. **Ask the user before indexing.** For example: "Do you want me to build a contract index from your code, so each hop shows its expected request and response? It reads the service repos listed in transit.config.json and keeps the results only in .transit-cache/." Only continue on a clear yes.
+2. If they agree and there is no `transit.config.json`, write one with them (see `references/config.md`). It maps each service name to a repo path and lists shared packages, route prefixes and infrastructure names.
+3. Run `node scripts/transit.mjs index --config transit.config.json --print`. Results are cached per file hash in `.transit-cache/contracts/`. Never commit that folder.
+4. Build with `--contracts`: `node engine/build.mjs <trace> --contracts --out out/<name>/transit.html`. Without the flag, no index is read and the panel says contracts are not indexed.
+5. In the panel, matched hops show request and response cards with fields, required markers, a source badge (validator or type), a confidence dot and file:line. Infrastructure hops and unmatched hops show why. Report the unmatched hops to the user rather than guessing their shape.
+
+Demo with no user code: `npm run index:example && npm run build:contracts`. This uses the synthetic sample app in `examples/astronomy-shop/`.
