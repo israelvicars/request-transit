@@ -19,8 +19,24 @@
   #hops td, #hops th { text-align: left; padding: 3px 8px; border-bottom: 1px solid #eee; }
   #wrap { display: flex; align-items: flex-start; }
   #main { width: 1200px; flex: none; }
-  #panel { width: 400px; flex: none; box-sizing: border-box; height: 900px; overflow: auto; border-left: 2px solid #111; padding: 0 18px 24px; font-size: 13px; position: sticky; top: 0; }
-  #panel .sign { background: #111; color: #fff; margin: 0 -18px 12px; padding: 12px 18px 10px; }
+  #panel { width: 400px; flex: none; box-sizing: border-box; border-left: 2px solid #111; font-size: 13px; }
+  /* interactive layout: page never scrolls; map scales to fit; hop table and panel body scroll on their own */
+  html:not(.render), html:not(.render) body { height: 100%; overflow: hidden; }
+  html:not(.render) #wrap { display: flex; height: 100vh; }
+  html:not(.render) #main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  html:not(.render) #stage { flex: none; width: min(100%, calc((100vh - 56px) * 4 / 3)); height: auto; aspect-ratio: 1200 / 900; }
+  html:not(.render) #controls { width: 100%; flex: none; }
+  html:not(.render) #hops { width: 100%; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #panel { display: flex; flex-direction: column; overflow: hidden; height: 100vh; }
+  #panel .pbody { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 18px 24px; scrollbar-width: thin; scrollbar-color: #9A9A9A transparent; outline: none; }
+  #panel .pbody::-webkit-scrollbar { width: 8px; } #panel .pbody::-webkit-scrollbar-thumb { background: #C4C4C4; border-radius: 4px; } #panel .pbody::-webkit-scrollbar-track { background: transparent; }
+  #panel .sign { flex: none; position: sticky; top: 0; z-index: 1; }
+  #panel .sign .sub .bul { vertical-align: -2px; margin: 0 2px; }
+  #panel .trow { margin: 8px 0 0; } #panel .trow .tl { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #4A4A4A; } #panel .trow .stats { margin: 3px 0 0; }
+  #panel .crumbs .sd.sq { border-radius: 3px; }
+  #panel details.client-attrs > summary { font-size: 11px; font-weight: 700; color: #4A4A4A; margin: 4px 0; }
+
+  #panel .sign { background: #111; color: #fff; margin: 0 0 12px; padding: 12px 18px 10px; }
   #panel .sign .st { display: flex; align-items: center; gap: 10px; }
   #panel .sign .sn { font-weight: 700; font-size: 22px; flex: 1; word-break: break-word; }
   #panel .sign::after { content: ""; display: block; width: 40px; height: 4px; background: #fff; margin-top: 8px; }
@@ -642,31 +658,9 @@ const bulletHtml = (n, size = 22) => n
 function spanLink(s) {
   return `<a href="#span=${encodeURIComponent(s.spanId)}" data-span="${esc(s.spanId)}"><span class="dot" style="background:${(nodeFor(s) || {}).color || C.infra}"></span>${esc(s.service)} · ${esc(s.name)}</a>`;
 }
-// mini waterfall: the span inside its parent's window; child time light, self time solid
-function waterfall(s) {
-  const p = s.parentId && byId.get(s.parentId);
-  const a = p ? p.start : 0, b = p ? p.end : TOTAL, w = Math.max(1e-9, b - a);
-  const pct = (x) => (100 * (clamp(x, a, b) - a) / w).toFixed(3) + '%';
-  const col = (nodeFor(s) || {}).color || C.ink;
-  const kidsIv = kids.get(s.spanId).map((k) => [Math.max(k.start, s.start), Math.min(k.end, s.end)]).filter((x) => x[1] > x[0]);
-  return `<div class="wf" title="${esc(s.name)} inside ${p ? esc(p.service + ' · ' + p.name) : 'the whole trace'}">` +
-    `<div class="wf-parent"></div>` +
-    `<div class="wf-span" style="left:${pct(s.start)};width:calc(${pct(s.end)} - ${pct(s.start)});background:${col}">` +
-    kidsIv.map(([x, y]) => `<i style="left:${(100 * (x - s.start) / (s.duration || 1)).toFixed(3)}%;width:${(100 * (y - x) / (s.duration || 1)).toFixed(3)}%"></i>`).join('') + `</div></div>` +
-    `<div class="wf-cap"><span>${p ? `in ${esc(p.service)} · ${fmtMs(p.duration)}` : `of the whole trace · ${fmtMs(TOTAL)}`}</span><span><b>${fmtMs(s.duration)}</b> · self <b>${fmtMs(s.self)}</b></span></div>`;
-}
-// breadcrumb: root to this span, one stop per service change (plus this span)
-function breadcrumb(s) {
-  const chain = []; for (let x = s; x; x = x.parentId && byId.get(x.parentId)) chain.unshift(x);
-  const stops = chain.filter((x, i) => i === chain.length - 1 || i === 0 || x.service !== chain[i - 1].service);
-  return `<div class="crumbs">` + stops.map((x, i) => {
-    const n = nodeFor(x), last = i === stops.length - 1;
-    return `<a class="stop${last ? ' here' : ''}" href="#span=${encodeURIComponent(x.spanId)}" data-span="${esc(x.spanId)}" title="${esc(x.service + ' · ' + x.name)}"><span class="sd" style="border-color:${n ? n.color : C.infra}${last ? `;background:${n ? n.color : C.infra}` : ''}"></span><span class="sl">${esc(x.service)}</span></a>`;
-  }).join('<span class="seg"></span>') + `</div>`;
-}
 // request / response cards
 const CONF = { high: ['#1C8F5A', 'high confidence'], medium: ['#E89A00', 'medium confidence'], low: ['#D42A1E', 'low confidence'] };
-const SRC = { zod: 'validator · zod', joi: 'validator · joi', 'class-validator': 'validator · class-validator', 'ts-types': 'type · TypeScript', openapi: 'spec · OpenAPI', none: 'declared', unresolved: 'unresolved' };
+const SRC = { zod: 'validator · zod', joi: 'validator · joi', 'class-validator': 'validator · class-validator', 'ts-types': 'type · TypeScript', openapi: 'spec · OpenAPI', protobuf: 'schema · protobuf', none: 'declared', unresolved: 'unresolved' };
 function typeLabel(n) {
   if (!n) return 'unknown';
   if (n.unresolved) return `${n.ref || 'unknown'} (unresolved)`;
@@ -691,7 +685,7 @@ function card(title, side, gap) {
     : side.schema.t === 'object' || (side.schema.t === 'array' && side.schema.items && side.schema.items.t === 'object') ? fieldRows(side.schema)
     : `<div class="f"><span class="ft">${esc(typeLabel(side.schema))}</span></div>`;
   return `<div class="card"><div class="ch"><b>${title}</b>${side.name ? `<span class="cn">${esc(side.name)}${side.schema.t === 'array' ? '[]' : ''}</span>` : ''}<span class="conf" title="${cl}"><i style="background:${cc}"></i>${side.confidence}</span></div>` +
-    `<div class="badges"><span class="badge ${/^validator|^spec/.test(SRC[side.kind] || '') ? 'v' : 't'}">${esc(SRC[side.kind] || side.kind)}</span>${side.via ? `<span class="badge o">${esc(side.via)}</span>` : ''}${side.crossPackage ? '<span class="badge o">shared package</span>' : ''}</div>` +
+    `<div class="badges"><span class="badge ${/^validator|^spec|^schema/.test(SRC[side.kind] || '') ? 'v' : 't'}">${esc(SRC[side.kind] || side.kind)}</span>${side.via ? `<span class="badge o">${esc(side.via)}</span>` : ''}${side.crossPackage ? '<span class="badge o">shared package</span>' : ''}</div>` +
     `<div class="cb">${body}</div>` +
     (side.notes && side.notes.length ? `<div class="note">${side.notes.map(esc).join('<br>')}</div>` : '') +
     (side.source ? `<div class="src">${esc(side.source)}</div>` : '') + `</div>`;
@@ -722,25 +716,71 @@ function attrGroups(s) {
     return `<div class="ag"><div class="agh">${g}<span>${rows.length}</span></div>${head.map(r).join('')}${tail.length ? `<details><summary>${tail.length} more</summary>${tail.map(r).join('')}</details>` : ''}</div>`;
   }).join('');
 }
+// One model for the whole panel. A hop is a call from a caller to a callee station:
+//   station  = the callee (header, title, breadcrumb end, server timings, attributes, contract)
+//   from     = the caller service; its client span is shown as the "client" timing and the waterfall window
+// Infrastructure hops have no server span: the client span is the hop and the station is the dependency.
+// A span that is not part of any hop (internal work) is shown on its own as "SPAN (no hop)".
+function hopModel(s) {
+  const c = hopOfSpan(s);
+  if (!c) return { c: null, main: s, client: null, server: s, node: nodeFor(s), infra: false, index: -1 };
+  const infra = !!nodes.get(c.to).inferred;
+  const client = c.span !== c.callee || infra ? c.span : null;        // the caller's client/producer span, if any
+  const server = infra ? null : c.callee;                              // the callee's server/consumer span
+  return { c, main: server || c.span, client, server, node: nodes.get(c.to), infra, index: hops.indexOf(c) };
+}
+// mini waterfall: the server span inside the caller's client span (or a span inside its parent);
+// time spent in children is light, self time solid
+function waterfall(m) {
+  const s = m.main, win = m.client && m.server ? m.client : (s.parentId && byId.get(s.parentId));
+  const a = win ? Math.min(win.start, s.start) : 0, b = win ? Math.max(win.end, s.end) : TOTAL, w = Math.max(1e-9, b - a);
+  const pct = (x) => (100 * (clamp(x, a, b) - a) / w).toFixed(3) + '%';
+  const col = (m.node || {}).color || C.ink;
+  const kidsIv = kids.get(s.spanId).map((k) => [Math.max(k.start, s.start), Math.min(k.end, s.end)]).filter((x) => x[1] > x[0]);
+  const winLabel = m.client && m.server ? `client call from ${esc(m.client.service)} · ${fmtMs(m.client.duration)}` : win ? `in ${esc(win.service)} · ${fmtMs(win.duration)}` : `of the whole trace · ${fmtMs(TOTAL)}`;
+  return `<div class="wf" title="${m.server && m.client ? 'server span inside the client call' : 'span inside its parent'}">` +
+    `<div class="wf-parent"></div>` +
+    `<div class="wf-span" style="left:${pct(s.start)};width:calc(${pct(s.end)} - ${pct(s.start)});background:${col}">` +
+    kidsIv.map(([x, y]) => `<i style="left:${(100 * (x - s.start) / (s.duration || 1)).toFixed(3)}%;width:${(100 * (y - x) / (s.duration || 1)).toFixed(3)}%"></i>`).join('') + `</div></div>` +
+    `<div class="wf-cap"><span>${winLabel}</span><span>${m.server && m.client ? 'server ' : ''}<b>${fmtMs(s.duration)}</b> · self <b>${fmtMs(s.self)}</b></span></div>`;
+}
+// breadcrumb: root to the station, one stop per service change; an infrastructure station is the last stop
+function breadcrumb(m) {
+  const chain = []; for (let x = m.main; x; x = x.parentId && byId.get(x.parentId)) chain.unshift(x);
+  const stops = chain.filter((x, i) => i === chain.length - 1 || i === 0 || x.service !== chain[i - 1].service);
+  const html = stops.map((x, i) => {
+    const n = nodeFor(x) && !(m.infra && x === m.main) ? nodeFor(x) : nodes.get(x.service), last = !m.infra && i === stops.length - 1;
+    return `<a class="stop${last ? ' here' : ''}" href="#span=${encodeURIComponent(x.spanId)}" data-span="${esc(x.spanId)}" title="${esc(x.service + ' · ' + x.name)}"><span class="sd" style="border-color:${n ? n.color : C.infra}${last ? `;background:${n ? n.color : C.infra}` : ''}"></span><span class="sl">${esc(x.service)}</span></a>`;
+  });
+  if (m.infra) html.push(`<span class="stop here infra" title="${esc(m.node.id)} (infrastructure)"><span class="sd sq" style="border-color:${C.infra};background:${C.infra}"></span><span class="sl">${esc(m.node.id)}</span></span>`);
+  return `<div class="crumbs">${html.join('<span class="seg"></span>')}</div>`;
+}
 function renderPanel() {
-  if (!sel) { panel.innerHTML = `<div class="sign"><div class="st"><span class="sn">Transit</span></div><div class="sub">no hop selected</div></div><div class="empty"><p>Pause, press <kbd>N</kbd>, or click a station, train or line to inspect a hop.</p></div><h3>Shortcuts</h3>` + document.querySelector('#help table').outerHTML; return; }
-  const s = sel, c = hopOfSpan(s), i = c ? hops.indexOf(c) : -1;
+  if (!sel) { panel.innerHTML = `<div class="sign"><div class="st"><span class="sn">Transit</span></div><div class="sub">no hop selected</div></div><div class="pbody" tabindex="0"><div class="empty"><p>Pause, press <kbd>N</kbd>, or click a station, train or line to inspect a hop.</p></div><h3>Shortcuts</h3>` + document.querySelector('#help table').outerHTML + '</div>'; return; }
+  const m = hopModel(sel), s = m.main, n = m.node;
   const ch = kids.get(s.spanId).slice().sort((a, b) => a.start - b.start);
-  const n = c ? nodes.get(c.to) : nodeFor(s);
   const stat = (k, v) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`;
+  const timing = (label, x, self) => `<div class="trow"><div class="tl">${label}</div><div class="stats">${stat('kind', esc(KIND(x.kind)))}${stat('start', '+' + fmtMs(x.start))}${stat('duration', fmtMs(x.duration))}${self ? stat('self', fmtMs(x.self) + (x.slow ? ' <span class="tag slow">DELAY</span>' : '')) : stat('span', `<span class="mono">${esc(x.spanId.slice(0, 8))}</span>`)}</div></div>`;
+  const errSpan = [m.server, m.client].filter(Boolean).find((x) => x.status === 'error');
+  const fromNode = m.c && nodes.get(m.c.from);
   panel.innerHTML =
     `<div class="sign"><div class="st">${bulletHtml(n, 26)}<span class="sn">${esc(n ? n.id : s.service)}</span><button id="pclose" title="Deselect (Esc)">×</button></div>` +
-    `<div class="sub">${c ? `HOP ${i + 1} / ${hops.length} · ${esc(c.from)} → ${esc(c.to)}` : 'SPAN (no hop)'}${n && n.inferred ? ' · infrastructure' : ''}</div></div>` +
+    `<div class="sub">${m.c ? `HOP ${m.index + 1} / ${hops.length} · from ${bulletHtml(fromNode, 14)} ${esc(m.c.from)}` : 'SPAN (no hop)'}${m.infra ? ' · infrastructure' : ''}</div></div>` +
+    `<div class="pbody" tabindex="0">` +
     `<h2>${esc(s.name)}</h2>` +
-    breadcrumb(s) +
-    waterfall(s) +
-    `<div class="stats">${stat('kind', esc(KIND(s.kind)))}${stat('start', '+' + fmtMs(s.start))}${stat('duration', fmtMs(s.duration))}${stat('self', fmtMs(s.self) + (s.slow ? ' <span class="tag slow">DELAY</span>' : ''))}</div>` +
-    `<div class="status ${s.status === 'error' ? 'err' : ''}">${s.status === 'error' ? `<span class="tag err">SERVICE ALERT</span> ${esc(s.statusMessage || 'error')}` : `status <b>${esc(s.status || 'unset')}</b>`}${s.resource && s.resource !== s.name ? ` · resource <b>${esc(s.resource)}</b>` : ''}</div>` +
+    breadcrumb(m) +
+    waterfall(m) +
+    (m.client && m.server ? timing(`client · ${esc(m.client.service)}`, m.client, false) + timing(`server · ${esc(m.server.service)}`, m.server, true)
+      : m.infra ? timing(`client · ${esc(m.client.service)} (no server span: ${esc(n.id)} is not instrumented)`, m.client, true)
+      : timing(m.c ? `${esc(KIND(s.kind))} · ${esc(s.service)}` : esc(s.service), s, true)) +
+    `<div class="status ${errSpan ? 'err' : ''}">${errSpan ? `<span class="tag err">SERVICE ALERT</span> ${esc(errSpan.statusMessage || 'error')} <span class="muted">(${errSpan === m.server ? 'server' : 'client'} span)</span>` : `status <b>${esc(s.status || 'unset')}</b>`}${s.resource && s.resource !== s.name ? ` · resource <b>${esc(s.resource)}</b>` : ''}</div>` +
     contractSection(s) +
-    `<h3>Attributes</h3>` + attrGroups(s) +
+    `<h3>Attributes${m.client && m.server ? ' · server span' : ''}</h3>` + attrGroups(s) +
+    (m.client && m.server && m.client.attrs ? `<details class="client-attrs"><summary>Client span attributes (${esc(m.client.service)})</summary>${attrGroups(m.client)}</details>` : '') +
     `<p class="muted">${D.meta && D.meta.redacted ? `${D.meta.redacted} attribute(s) redacted across this trace before rendering.` : 'Sensitive-looking keys are redacted at build time.'}</p>` +
     `<h3>Children (${ch.length})</h3>${ch.length ? '<ul>' + ch.map((k) => `<li>${spanLink(k)}</li>`).join('') + '</ul>' : '<p class="muted">none</p>'}` +
-    `<p class="muted mono">span ${esc(s.spanId)}</p>`;
+    `<p class="muted mono">${m.client ? `client span ${esc(m.client.spanId)}<br>` : ''}${m.server ? `server span ${esc(m.server.spanId)}` : m.client ? '' : `span ${esc(s.spanId)}`}</p>` +
+    `</div>`;
 }
 function select(s, jump = true) {
   sel = s || null;

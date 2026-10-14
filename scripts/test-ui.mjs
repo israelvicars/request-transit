@@ -1,7 +1,7 @@
 // scripts/test-ui.mjs: Playwright keyboard + click tests for the interactive page (not the video).
 // usage: node scripts/test-ui.mjs [out/otel/transit.html] [--shot out/ui/panel.png]
 import { pathToFileURL } from 'node:url';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 await (await import('./setup.mjs')).ensureSetup({ need: ['deps', 'browser'] });
 const { chromium } = await import('playwright');
@@ -10,6 +10,7 @@ const file = argv.find((a) => !a.startsWith('--')) || 'out/otel/transit.html';
 const shot = argv.includes('--shot') ? argv[argv.indexOf('--shot') + 1] : null;
 const cfile = argv.includes('--contracts-page') ? argv[argv.indexOf('--contracts-page') + 1] : null;
 const cshot = argv.includes('--contracts-shot') ? argv[argv.indexOf('--contracts-shot') + 1] : null;
+const sdir = argv.includes('--scroll-shots') ? argv[argv.indexOf('--scroll-shots') + 1] : null;
 let fails = 0;
 const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) fails++; };
 const browser = await chromium.launch();
@@ -106,12 +107,59 @@ if (cfile) {
   txt = await sel((h) => h.to === 'valkey-cart');
   ok(/Infrastructure hop/.test(txt), 'valkey hop: infrastructure');
   txt = await sel((h) => h.to === 'product-catalog');
-  ok(/Unmatched/.test(txt) && /catalog\.proto/.test(txt), 'product-catalog hop: unmatched with reason');
+  ok(/MATCHED/.test(txt) && /schema · protobuf/.test(txt) && /catalog\.proto/.test(txt) && /price_usd/.test(txt), 'product-catalog hop: matched from catalog.proto');
   txt = await sel((h) => h.to === 'fraud-detection');
   ok(/FALLBACK/.test(txt) && /medium/.test(txt), 'fraud-detection hop: producer-shape fallback, medium');
   txt = await sel((h) => h.to === 'frontend');
   ok(/shared package/.test(txt) && /packages\/shop-schemas/.test(txt), 'frontend hop: cross-package schema source');
   ok((await pc.textContent('#hops')).includes('matched'), 'hop table shows contract state');
+  // one hop model everywhere: callee is the station, caller is 'from', both timings labeled
+  const view = async () => pg.evaluate(() => ({
+    sn: document.querySelector('#panel .sign .sn').textContent, sub: document.querySelector('#panel .sign .sub').textContent,
+    h2: document.querySelector('#panel h2').textContent, here: document.querySelector('#panel .crumbs .here .sl').textContent,
+    tl: [...document.querySelectorAll('#panel .trow .tl')].map((e) => e.textContent), card: (document.querySelector('#panel .match') || {}).textContent || '' }));
+  await sel((h) => h.to === 'shipping' && /get-quote/.test(JSON.stringify(h)) || h.to === 'shipping');
+  let v = await view();
+  ok(v.sn === 'shipping' && v.here === 'shipping' && /from\s+.*checkout/.test(v.sub) && v.h2 === 'POST /get-quote' && /get-quote/.test(v.card), `shipping hop consistent: header/title/breadcrumb/contract all describe the callee (${v.h2})`);
+  ok(v.tl.length === 2 && /^client · checkout/.test(v.tl[0]) && /^server · shipping/.test(v.tl[1]), 'client and server timings both labeled');
+  await sel((h) => h.to === 'valkey-cart'); v = await view();
+  ok(v.sn === 'valkey-cart' && v.here === 'valkey-cart' && v.h2 === 'HGET' && /from\s+.*cart/.test(v.sub) && /no server span/.test(v.tl[0]), 'infra hop consistent: station is the dependency, client span is the hop');
+  // selecting the server span directly lands on the same hop as selecting the client span
+  const same = await pg.evaluate(() => { const h = window.TRANSIT_UI.hops.find((x) => x.to === 'payment'); return h; });
+  const srvId = await pg.evaluate(() => window.TRACE.spans.find((x) => x.service === 'payment' && x.kind === 'server').spanId);
+  pg = await browser.newPage({ viewport: { width: 1600, height: 1000 } }); await pg.goto(curl + '?paused#span=' + encodeURIComponent(srvId));
+  ok((await pg.evaluate(() => window.TRANSIT_UI.state().hop)) === ch.findIndex((h) => h.spanId === same.spanId), 'server span and client span select the same hop');
+  // scrolling: page never scrolls, panel body scrolls on its own, header sticks, selection resets scroll
+  for (const [w, hgt] of [[1280, 800], [1280, 600]]) {
+    const ps = await browser.newPage({ viewport: { width: w, height: hgt } });
+    const fe = ch.find((h) => h.to === 'frontend');   // longest panel: big cross-package request + response
+    await ps.goto(curl + '?paused#span=' + encodeURIComponent(fe.spanId));
+    const m0 = await ps.evaluate(() => { const d = document.scrollingElement, b = document.querySelector('#panel .pbody'), st = document.getElementById('stage').getBoundingClientRect();
+      return { sh: d.scrollHeight, sw: d.scrollWidth, ih: innerHeight, iw: innerWidth, bsh: b.scrollHeight, bch: b.clientHeight, ov: getComputedStyle(b).overflowY, osb: getComputedStyle(b).overscrollBehaviorY, stB: st.bottom, stR: st.right }; });
+    ok(m0.sh <= m0.ih && m0.sw <= m0.iw, `${w}x${hgt}: no page scrollbar (${m0.sw}x${m0.sh})`);
+    ok(m0.stB <= m0.ih + 0.5 && m0.stR <= m0.iw - 400 + 0.5, `${w}x${hgt}: whole map visible beside the panel`);
+    ok(m0.ov === 'auto' && m0.osb === 'contain', `${w}x${hgt}: panel body overflow-y:auto, overscroll contain`);
+    ok(m0.bsh > m0.bch, `${w}x${hgt}: longest panel overflows its body (${m0.bsh} > ${m0.bch})`);
+    const bb = await ps.locator('#panel .pbody').boundingBox();
+    await ps.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+    await ps.mouse.wheel(0, 2000); await ps.waitForTimeout(250);
+    const m1 = await ps.evaluate(() => ({ top: document.querySelector('#panel .pbody').scrollTop, y: scrollY, se: document.scrollingElement.scrollTop, sign: document.querySelector('#panel .sign').getBoundingClientRect().top, stage: document.getElementById('stage').getBoundingClientRect().top }));
+    ok(m1.top > 0 && m1.y === 0 && m1.se === 0 && m1.stage === 0, `${w}x${hgt}: wheel scrolls only the panel body (scrollTop ${m1.top})`);
+    ok(m1.sign === 0, `${w}x${hgt}: station-sign header stays on top`);
+    if (sdir) { mkdirSync(resolve(sdir), { recursive: true }); await ps.screenshot({ path: join(resolve(sdir), `panel-scrolled-${w}x${hgt}.png`) }); console.log('screenshot', join(resolve(sdir), `panel-scrolled-${w}x${hgt}.png`)); }
+    const sbox = await ps.locator('#stage').boundingBox();
+    await ps.mouse.move(sbox.x + 50, sbox.y + sbox.height - 50); await ps.mouse.wheel(0, 1500); await ps.waitForTimeout(150);
+    ok((await ps.evaluate(() => [scrollY, document.getElementById('stage').getBoundingClientRect().top])).every((x) => x === 0), `${w}x${hgt}: map does not scroll`);
+    await ps.focus('#panel .pbody');
+    const before = (await ps.evaluate(() => window.TRANSIT_UI.state())).hop;
+    await ps.keyboard.press('n');
+    const after = await ps.evaluate(() => ({ hop: window.TRANSIT_UI.state().hop, top: document.querySelector('#panel .pbody').scrollTop }));
+    ok(after.hop === before + 1, `${w}x${hgt}: keyboard works with the panel focused`);
+    ok(after.top === 0, `${w}x${hgt}: new hop resets panel scroll to top`);
+    await ps.keyboard.press('?'); ok((await ps.evaluate(() => window.TRANSIT_UI.state().help)), `${w}x${hgt}: ? works with the panel focused`); await ps.keyboard.press('Escape');
+    if (sdir && hgt === 800) { await ps.screenshot({ path: join(resolve(sdir), `panel-top-${w}x${hgt}.png`) }); console.log('screenshot', join(resolve(sdir), `panel-top-${w}x${hgt}.png`)); }
+    await ps.close();
+  }
   if (cshot) {
     await sel((h) => h.to === 'shipping');
     mkdirSync(dirname(resolve(cshot)), { recursive: true });
