@@ -1,0 +1,16 @@
+{
+  "name": "transit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Transit: a public transit map for your requests. Animates one trace (OpenTelemetry or Datadog) as a subway map.",
+  "scripts": {
+    "test": "node scripts/test-normalize.mjs",
+    "build": "node engine/build.mjs samples/otel-demo-checkout.otlp.json --out out/otel/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
+    "build:dd": "node engine/build.mjs samples/datadog-sample.json --out out/dd/transit.html --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
+    "render": "node scripts/render.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
+    "render:dd": "node scripts/render.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
+    "verify": "node scripts/verify.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\""
+  },
+  "devDependencies": { "playwright": "1.64.0" }
+}
