@@ -1,67 +1,118 @@
-# transit (working name)
+<p align="center">
+  <img src="docs/hero.gif" alt="Transit drawing one checkout request as a subway map: trains leave each station when the span starts, a DELAY marker grows on the slow payment call, and a red SERVICE ALERT appears where the email call fails" width="900">
+</p>
 
-**A public transit map for your requests.** Transit animates one request's trip through a distributed
-system as a subway map, from an OpenTelemetry or Datadog trace. Services are lines, hops are stations,
-slow calls get a DELAY marker and failures a SERVICE ALERT. It runs locally and can render a
-frame-exact MP4/GIF for docs and chat.
+<h1 align="center">🚇 request-transit</h1>
 
-Status: pre-release, private. Name and license not chosen yet.
+<p align="center"><b>A public transit map for your requests.</b></p>
 
-First run sets itself up: any script checks Node 18+, installs npm deps and Playwright Chromium
-if missing, and installs ffmpeg with Homebrew on macOS (on Linux it prints the `apt`/`dnf` command).
-The result is cached in `.transit-cache/setup.json`; `node scripts/setup.mjs --force` re-checks.
+<p align="center">
+Turn one distributed trace into an animated subway map: services are lines, calls are trains, slow hops get a DELAY marker, and failures raise a SERVICE ALERT.<br>
+Use it as an agent skill next to your observability MCP servers, open the interactive page, or render a frame-exact MP4/GIF for a PR, an incident doc or chat.
+</p>
 
+<p align="center"><sub>The GIF above was rendered by Transit from <code>samples/otel-demo-checkout.otlp.json</code> (a synthetic trace).</sub></p>
+
+> [!NOTE]
+> Pre-release. Nothing is published yet (no npm package, no public repo). All sample data in this repo is synthetic.
+
+## Quickstart
+
+```sh
+npm install
+npm run build     # out/otel/transit.html: open it, press ? for shortcuts
+npm run render    # out/otel/anim.mp4 + anim.gif + contact.png
 ```
-npm test            # adapter tests
-npm run build       # out/otel/transit.html, open it in a browser
-npm run render      # out/otel/anim.mp4, anim.gif, contact.png
-npm run verify      # two renders byte-identical, timing, ffmpeg freeze/black gates
-npm run render:dd   # same on the Datadog-shaped sample
-npm run render:posthog   # same on the PostHog Distributed Tracing sample
+
+Your own trace: `node scripts/render.mjs path/to/trace.json --name mine --title "Checkout, Tuesday 14:02"`.
+
+The first run sets itself up. It checks for Node 18+, installs npm deps and Playwright Chromium if they are missing, and installs ffmpeg with Homebrew on macOS (on Linux it prints the `apt`/`dnf` command). The result is cached in `.transit-cache/setup.json`; `node scripts/setup.mjs --force` re-checks.
+
+## Use it from your agent
+
+Transit is an [Agent Skill](https://agentskills.io): a folder with a `SKILL.md`. Link this checkout into your client's skills folder, then ask something like *"draw trace 4bf92f… as a transit map"*.
+
+| Client | Install (from this checkout) |
+| --- | --- |
+| **Claude Code** | `ln -s "$PWD" ~/.claude/skills/transit` (or `.claude/skills/transit` inside one repo) |
+| **Cursor** | `ln -s "$PWD" ~/.cursor/skills/transit` (Cursor also reads `~/.claude/skills`) |
+| **Codex** | `ln -s "$PWD" ~/.agents/skills/transit` (or `.agents/skills/transit` inside one repo) |
+
+Folder locations come from each client's docs: [Claude Code](https://code.claude.com/docs/en/skills), [Cursor](https://cursor.com/docs/skills), [Codex](https://developers.openai.com/codex/skills).
+
+### Next to MCP, not instead of it
+
+Observability MCP servers (PostHog, Datadog, Sentry, Grafana, AWS, …) are good at *finding* a trace. Transit is the step after that: the agent saves what the MCP tool returned, and Transit turns it into a picture a human can follow in ten seconds.
+
+- It is a skill plus local scripts, not a server, so it adds no tool schemas to the context.
+- It never needs API keys of its own; the headless fetch scripts read keys from env only.
+
+## Supported sources
+
+| Source | Input | Fetch | Status |
+| --- | --- | --- | --- |
+| OpenTelemetry (OTLP JSON) | file | any exporter / collector file | ✅ working, tested |
+| Datadog | tracer/agent span JSON, Spans API v2 | MCP or `fetch.mjs datadog-api` | ✅ adapter tested · fetch **untested live** |
+| PostHog Distributed Tracing | trace endpoint / MCP `apm-trace-get` | MCP or `fetch.mjs posthog-api` | ✅ adapter tested · fetch **untested live** |
+| AWS X-Ray | BatchGetTraces / segment documents | `fetch.mjs xray` (AWS CLI) or AWS MCP `get_xray_trace` | ✅ adapter tested · fetch **untested live** |
+| Jaeger, Grafana Tempo | OTLP-shaped API responses | — | 🧭 planned ([research](references/more-sources.md)) |
+| Sentry, Honeycomb, GCP Cloud Trace, Zipkin | — | — | 🧭 researched, not started |
+
+"Adapter tested" means the format is parsed in unit tests and rendered from a synthetic sample. No live account has been used.
+
+## What you get
+
+- **The map.** Services are laid out left to right by call depth, with octilinear lines and 1970s-transit typography (Arimo, OFL). Dotted grey lines are infrastructure (databases, caches, brokers). A "this trip" strip shows the stops in time order.
+- **Honest timing.** Every train leaves on the exact frame its span starts. DELAY means self time over a threshold, and SERVICE ALERT marks where the error *started*, not every ancestor.
+- **Interactive page.**
+  - **Keys:** `N`/`P` step through hops, `1`/`2`/`3` set the speed, `?` lists every shortcut.
+  - **Click:** a station, train or line selects that hop.
+  - **Side panel:** a station-sign header, a breadcrumb, a mini waterfall with self time, client and server timings, and grouped attributes.
+  - **Deep links:** `#span=<id>`.
+- **Deterministic video.** Two renders are byte-identical (`npm run verify` checks it, along with train timing and ffmpeg freeze/black detection).
+- **Optional contract layer.** It shows each hop's *expected* request and response from your code: Express + Zod/Joi, NestJS + class-validator, TypeScript types, protobuf and OpenAPI. Shared-package imports are followed, and each shape gets a file:line and a confidence level. Gaps are shown, never guessed. It is opt-in: `node scripts/transit.mjs index`, then build with `--contracts`. See [`examples/astronomy-shop`](examples/astronomy-shop) for the demo.
+
+<p align="center"><img src="docs/panel.png" alt="Interactive page with the side panel open on the shipping hop: client and server timings, a Joi request card and a TypeScript response card" width="900"></p>
+
+## How it works
+
+```mermaid
+flowchart LR
+  A[trace file<br>or MCP result] --> B[adapters/normalize.mjs<br>one span shape]
+  B --> C[engine/build.mjs<br>redact + layout data]
+  K[(optional<br>contract index)] -.->|with --contracts| C
+  C --> D[transit.html<br>self-contained]
+  D --> E[render-frames.mjs<br>renderAt t, frozen rAF]
+  E --> F[ffmpeg<br>MP4 · GIF · contact sheet]
 ```
 
-Your own trace: `node scripts/render.mjs path/to/trace.json --name mine --title "..."`.
+Each frame is a pure function `renderAt(t)`: no clock, no timers, no randomness. The interactive selection is drawn on top of that frame and is switched off in render mode, which is why the videos are reproducible.
+
+## Privacy
+
+- **Local only.** Traces are processed on your machine. `transit.html` inlines its data, fonts and icon, and makes no network calls when you open it.
+- **Redaction before render.** Attribute keys that look like PII (user, email, token, auth, cookie, session, card, client IP…) are dropped at build time. Add more with `--redact k1,k2`. See [`references/adapters.md`](references/adapters.md#privacy).
+- **Keys from env only.** The fetch scripts read `DD_*`, `POSTHOG_*` or your AWS CLI profile from the environment and never write them anywhere.
+- **Code stays put.** The contract layer runs only when asked. The skill asks the user first, and its cache lives in `.transit-cache/` (gitignored).
+
+## Project layout
 
 | Path | |
 | --- | --- |
-| `engine/` | build (trace -> self-contained HTML), subway template, frame renderer, ffmpeg export, fonts |
-| `adapters/` | OTLP / PostHog tracing / Datadog / Datadog v2 -> normalized spans; Datadog and PostHog API fetch |
-| `scripts/` | `setup` (first-run checks), `fetch`, `build` (engine/build.mjs), `render`, `verify`, `extract` (stub), `still` |
-| `SKILL.md`, `references/` | agent skill entry point and details |
-| `samples/` | synthetic traces only |
-| `examples/` | SYNTHETIC sample app (`astronomy-shop`) whose code matches the OTel demo checkout trace, for the contract layer |
+| `SKILL.md`, `references/` | agent skill entry point; design system, adapters, sources, contracts, config |
+| `engine/` | build (trace → self-contained HTML), subway template, frame renderer, ffmpeg export, fonts |
+| `adapters/` | OTLP, PostHog, Datadog, Datadog v2 and X-Ray → normalized spans; API/CLI fetch scripts |
 | `contracts/` | optional contract layer: extractors, index, matcher |
+| `scripts/` | `setup`, `fetch`, `render`, `verify`, `still`, `transit` (index), tests |
+| `samples/`, `examples/` | synthetic traces and a synthetic example app |
+| `docs/` | README images |
 
-## Install as a skill
-- **Claude Code**: copy or symlink this folder to `~/.claude/skills/transit/` (or `.claude/skills/transit/` in a repo).
-- **Codex**: put it under `~/.codex/skills/transit/` (or reference `SKILL.md` from `AGENTS.md`).
-- **Cursor**: add it under `.cursor/skills/transit/` or reference `SKILL.md` from a project rule.
+```sh
+npm test                 # adapters + contract layer
+npm run test:ui          # Playwright keyboard, click and scroll tests
+npm run verify           # also verify:dd, verify:posthog, verify:xray
+```
 
-All sample data is synthetic. Span attributes can contain PII: see `references/adapters.md#privacy`.
+## License
 
-
-## Interactive page
-
-Open `out/<name>/transit.html` in a browser. Video renders hide all of this, and `renderAt(t)` stays a pure function of t. Selection is drawn as an overlay after it, so frames are byte-identical.
-
-- **Hops:** `N` / `↓` / `Shift+→` next hop, `P` / `↑` / `Shift+←` previous hop. The hop is highlighted and the panel opens.
-- **Time:** `←` / `→` seek 0.5 s, `,` / `.` one frame, `Home` / `End`, `Space` play/pause. Pausing selects the hop in progress, and playing clears the selection.
-- **Speed:** `1` / `2` / `3` = 0.5x / 1x / 2x, or the speed buttons.
-- **Click:** a station, train, line or strip tick to select that hop. Clicking empty map toggles play.
-- **Side panel:** station-sign header, root-to-hop breadcrumb, mini waterfall with self time, stats, status, request/response contract cards, grouped attributes and child links. The panel also shows the expected request/response when the page was built with contracts.
-- **Links:** `#span=<id>` (or `?span=` / `?pin=`) selects a span. `?` shows the shortcut help, and `Esc` closes it or deselects.
-- **Tests:** `npm run test:ui` runs the Playwright keyboard and click tests.
-
-## AWS X-Ray
-
-`npm run render:xray` renders the SYNTHETIC X-Ray sample (`samples/xray-checkout.json`, BatchGetTraces shape, generated by `samples/make-xray-sample.mjs`). For a real trace, `node scripts/fetch.mjs xray <trace id>` (or `xray --find` to list recent ids) runs `aws xray batch-get-traces` with your normal AWS CLI credentials. That path is **untested live**. Agents can instead use `get_xray_trace` on the AWS Labs CloudWatch Application Signals MCP server, save the JSON, and build from the file. Mapping details are in `references/adapters.md`.
-
-## Contract layer (optional)
-
-The contract layer runs only when you ask for it. It never runs on its own.
-
-- `node scripts/transit.mjs index --config transit.config.json` extracts request/response shapes from your code into `.transit-cache/contracts/`. It reads Express + Zod/Joi, NestJS + class-validator DTOs, TypeScript types, protobuf and OpenAPI, and resolves imports across shared packages.
-- `node engine/build.mjs <trace> --contracts` attaches the index to the page. Each hop is then shown as matched, infrastructure or unmatched (with a reason).
-- `npm run index:example && npm run build:contracts` demos it on the synthetic `examples/astronomy-shop`.
-
-Details are in `references/extractors.md` and `references/config.md`. Videos are unaffected unless you render with `--contracts`, which changes only the footer counts.
+MIT
