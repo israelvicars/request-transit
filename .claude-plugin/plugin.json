@@ -1,0 +1,23 @@
+{
+  "name": "request-transit",
+  "version": "0.1.0",
+  "description": "A public transit map for your requests: animate one distributed trace (OpenTelemetry, Datadog, PostHog, AWS X-Ray, Grafana Tempo) as a subway map, as an interactive page or a frame-exact MP4/GIF.",
+  "author": {
+    "name": "Israel Vicars",
+    "url": "https://github.com/israelvicars"
+  },
+  "homepage": "https://github.com/israelvicars/request-transit",
+  "repository": "https://github.com/israelvicars/request-transit",
+  "license": "MIT",
+  "keywords": [
+    "opentelemetry",
+    "distributed-tracing",
+    "observability",
+    "visualization",
+    "datadog",
+    "posthog",
+    "aws-xray",
+    "grafana-tempo"
+  ],
+  "skills": "./plugin/skills"
+}
