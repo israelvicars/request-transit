@@ -22,7 +22,7 @@ const pass = (args) => { const a = [...args]; for (const [k, v] of Object.entrie
 
 // 1. two independent full renders
 const runA = join(dir, 'frames'), runB = join(dir, 'frames-rerun');
-if (!existsSync(join(dir, 'anim.mp4')) || opt.fresh) execFileSync('node', pass(['scripts/render.mjs', pos[0], '--name', name]), { cwd: ROOT, stdio: 'ignore' });
+execFileSync('node', pass(['scripts/render.mjs', pos[0], '--name', name]), { cwd: ROOT, stdio: 'ignore' });
 execFileSync('node', pass(['scripts/render.mjs', pos[0], '--name', name, '--frames', runB, '--frames-only', '1']), { cwd: ROOT, stdio: 'ignore' });
 const sha = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
 const A = readdirSync(runA).filter((f) => f.endsWith('.png')).sort(), B = readdirSync(runB).filter((f) => f.endsWith('.png')).sort();
