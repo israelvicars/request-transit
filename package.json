@@ -11,7 +11,9 @@
     "render": "node scripts/render.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
     "render:dd": "node scripts/render.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
     "verify": "node scripts/verify.mjs samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
-    "verify:dd": "node scripts/verify.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\""
+    "verify:dd": "node scripts/verify.mjs samples/datadog-sample.json --name dd --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
+    "render:posthog": "node scripts/render.mjs samples/posthog-checkout.json --name posthog --title \"Checkout, from a PostHog Distributed Tracing trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in PostHog trace-endpoint shape\"",
+    "verify:posthog": "node scripts/verify.mjs samples/posthog-checkout.json --name posthog --title \"Checkout, from a PostHog Distributed Tracing trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in PostHog trace-endpoint shape\""
   },
   "devDependencies": {
     "playwright": "1.64.0"

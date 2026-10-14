@@ -12,6 +12,7 @@
 //   attrs            a small whitelist of attributes (peer, db, messaging, http, rpc keys)
 //
 // Supported inputs (auto-detected, or force with --format):
+//   posthog    PostHog Distributed Tracing spans (REST trace endpoint / MCP apm-trace-get)
 //   otlp       OTLP JSON ({resourceSpans:[...]}), hex or base64 ids, numeric or string enums
 //   datadog    Datadog tracer/agent span JSON: [[span,...]] or [span,...] or {spans:[...]} or
 //              {traces:[[...]]} where span = {trace_id, span_id, parent_id, service, resource,
@@ -21,7 +22,7 @@
 //              resource_name, start_timestamp, end_timestamp, custom:{...}, tags:[...]}}]}
 //   internal   already-normalized JSON (passed through and re-validated)
 //
-// CLI: node normalize.mjs <trace.json> [--format otlp|datadog|datadog-v2|internal] [--trace-id ID]
+// CLI: node normalize.mjs <trace.json> [--format otlp|posthog|datadog|datadog-v2|internal] [--trace-id ID]
 //      prints the normalized JSON to stdout
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -36,13 +37,15 @@ export function parseJsonSafe(text) {
 
 export function detectFormat(doc) {
   if (doc && Array.isArray(doc.resourceSpans)) return 'otlp';
+  const ph = posthogSpans(doc);
+  if (ph && ph[0] && 'span_id' in ph[0] && ('duration_nano' in ph[0] || 'service_name' in ph[0])) return 'posthog';
   if (doc && Array.isArray(doc.data) && doc.data[0] && doc.data[0].attributes && 'span_id' in doc.data[0].attributes) return 'datadog-v2';
   const first = Array.isArray(doc) ? (Array.isArray(doc[0]) ? doc[0][0] : doc[0])
     : doc && Array.isArray(doc.traces) ? doc.traces[0]?.[0]
     : doc && Array.isArray(doc.spans) ? doc.spans[0] : null;
   if (first && 'span_id' in first && 'trace_id' in first) return 'datadog';
   if (first && 'spanId' in first && 'start' in first && 'duration' in first) return 'internal';
-  throw new Error('unrecognized trace format: expected OTLP JSON (resourceSpans), Datadog spans (trace_id/span_id) or the internal schema');
+  throw new Error('unrecognized trace format: expected OTLP JSON (resourceSpans), PostHog tracing spans (span_id/service_name/duration_nano), Datadog spans (trace_id/span_id) or the internal schema');
 }
 
 // ---------------------------------------------------------------- OTLP
@@ -146,6 +149,52 @@ function fromDatadog(doc) {
   return { raw, format: 'datadog', source: doc._comment };
 }
 
+// ---------------------------------------------------------------- PostHog Distributed Tracing
+// Shape of POST /api/projects/:id/tracing/spans/trace/:trace_id/ and the MCP tool apm-trace-get:
+// {results:[span], hasMore, nextOffset} (also accepted: a bare array, {spans:[...]}, {data:[...]}).
+//   trace_id / span_id        hex (HogQL returns base64: decoded like OTLP ids)
+//   parent_span_id            hex; all zeros or empty = root
+//   service_name              -> service (fallback resource_attributes['service.name'])
+//   name                      -> name
+//   kind 0-5 (OTel enum)      -> kind
+//   status_code 0/1/2         -> unset/ok/error; message from attributes otel.status_description / exception.message
+//   timestamp (ISO start)     -> start; duration_nano -> duration (end_time used if duration missing)
+// Sources: posthog.com/docs/api/tracing-2, PostHog products/tracing/skills/.../spans-and-fields.md
+function posthogSpans(doc) {
+  if (Array.isArray(doc)) return doc;
+  if (!doc || typeof doc !== 'object') return null;
+  for (const k of ['results', 'spans', 'data']) if (Array.isArray(doc[k])) return doc[k];
+  return null;
+}
+// ISO 8601 with up to 9 fractional digits -> BigInt ns since epoch (Date.parse keeps only ms)
+function isoToNs(iso) {
+  const m = String(iso).match(/^(.*T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:?\d{2})?$/);
+  if (!m) return BigInt(Date.parse(iso)) * 1000000n;
+  const sec = BigInt(Date.parse(m[1] + (m[3] || 'Z'))) * 1000000n;
+  return sec + BigInt((m[2] || '').padEnd(9, '0').slice(0, 9) || '0');
+}
+const phParent = (p) => (!p || /^0+$/.test(p) || p === 'AAAAAAAAAAA=') ? null : otlpId(p);
+function fromPosthog(doc) {
+  const raw = posthogSpans(doc).map((s) => {
+    const a = s.attributes || {}, res = s.resource_attributes || {};
+    const kind = OTLP_KIND[Number(s.kind)] || 'internal';
+    const startNs = isoToNs(s.timestamp);
+    const endNs = s.duration_nano != null ? startNs + BigInt(Math.round(Number(s.duration_nano))) : isoToNs(s.end_time);
+    const code = Number(s.status_code);
+    const status = code === 2 ? 'error' : code === 1 ? 'ok' : 'unset';
+    return {
+      traceId: otlpId(s.trace_id), spanId: otlpId(s.span_id), parentId: phParent(s.parent_span_id),
+      service: s.service_name || res['service.name'] || 'unknown_service', name: s.name || 'span', kind,
+      startNs, endNs, status,
+      statusMessage: status === 'error' ? (a['otel.status_description'] || s.status_message || a['exception.message'] || undefined) : undefined,
+      peer: (kind === 'client' || kind === 'producer') ? (a['peer.service'] || a['db.system'] && (a['server.address'] || a['db.system']) || a['messaging.system'] || undefined) : undefined,
+      attrs: pick(a),
+    };
+  });
+  if (doc && doc.hasMore) raw.warnings = ['input says hasMore=true: this is only the first page of spans; fetch every page'];
+  return { raw, format: 'posthog', source: doc && doc._comment };
+}
+
 // ---------------------------------------------------------------- Datadog Spans API v2
 // attributes.start_timestamp / end_timestamp are ISO-8601 (millisecond precision); durations in
 // custom.duration (ns) are preferred when present. error from custom.error, custom.status or a
@@ -187,9 +236,9 @@ export function normalize(doc, { format, traceId } = {}) {
   if (typeof doc === 'string') doc = parseJsonSafe(doc);
   format = format || detectFormat(doc);
   if (format === 'internal') return validate(doc);
-  const { raw, source } = format === 'otlp' ? fromOtlp(doc) : format === 'datadog' ? fromDatadog(doc) : fromDatadogV2(doc);
+  const { raw, source } = format === 'otlp' ? fromOtlp(doc) : format === 'posthog' ? fromPosthog(doc) : format === 'datadog' ? fromDatadog(doc) : fromDatadogV2(doc);
   if (!raw.length) throw new Error('no spans found');
-  const warnings = [];
+  const warnings = [...(raw.warnings || [])];
   // One trace per viz. Pick the requested one, else the trace with the most spans.
   const counts = new Map();
   for (const s of raw) counts.set(s.traceId, (counts.get(s.traceId) || 0) + 1);
@@ -233,7 +282,7 @@ export function validate(t) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const argv = process.argv.slice(2); const opt = {}; const pos = [];
   for (let i = 0; i < argv.length; i++) argv[i].startsWith('--') ? (opt[argv[i].slice(2)] = argv[++i]) : pos.push(argv[i]);
-  if (!pos[0]) { console.error('usage: node normalize.mjs <trace.json> [--format otlp|datadog|datadog-v2|internal] [--trace-id ID]'); process.exit(1); }
+  if (!pos[0]) { console.error('usage: node normalize.mjs <trace.json> [--format otlp|posthog|datadog|datadog-v2|internal] [--trace-id ID]'); process.exit(1); }
   const t = normalize(readFileSync(pos[0], 'utf8'), { format: opt.format, traceId: opt['trace-id'] });
   for (const w of t.meta.warnings) console.error('warning:', w);
   process.stdout.write(JSON.stringify(t, null, 1) + '\n');

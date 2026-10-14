@@ -77,4 +77,30 @@ t('multiple traces: picks the biggest, or the requested one', () => {
   assert.equal(normalize(doc).traceId, '1');
   assert.equal(normalize(doc, { traceId: '2' }).spans.length, 1);
 });
+t('PostHog tracing sample: auto-detected, same trip as the OTLP original', () => {
+  const ph = normalize(load('posthog-checkout.json')), ot = normalize(load('otel-demo-checkout.otlp.json'));
+  assert.equal(ph.meta.format, 'posthog'); assert.equal(ph.meta.synthetic, true);
+  assert.equal(ph.traceId, ot.traceId); assert.equal(ph.spans.length, ot.spans.length);
+  const key = (s) => [s.spanId, s.parentId, s.service, s.name, s.kind, s.status, s.start.toFixed(3), s.duration.toFixed(3)].join('|');
+  assert.deepEqual(ph.spans.map(key).sort(), ot.spans.map(key).sort());
+  assert.match(ph.spans.find((s) => s.service === 'email').statusMessage, /SMTP timeout/);
+  assert.equal(ph.spans.find((s) => s.name === 'HGET').peer, 'valkey-cart');
+});
+
+t('PostHog: bare array, base64 ids (HogQL), zero parent, end_time fallback, hasMore warning', () => {
+  const b64 = (hex) => Buffer.from(hex, 'hex').toString('base64');
+  const sp = (id, parent, ts, durNs, extra = {}) => ({ trace_id: b64('0af7651916cd43dd8448eb211c80319c'), span_id: b64(id), parent_span_id: parent,
+    name: 'op' + id.slice(-1), kind: 2, service_name: 'svc' + id.slice(-1), status_code: 0, timestamp: ts, duration_nano: durNs, ...extra });
+  const arr = [sp('00000000000000a1', '0000000000000000', '2026-01-01T00:00:00.000000123Z', 5e6),
+    sp('00000000000000a2', b64('00000000000000a1'), '2026-01-01T00:00:00.001500Z', undefined, { end_time: '2026-01-01T00:00:00.003500Z', kind: 3, status_code: 2, attributes: { 'otel.status_description': 'boom' } })];
+  const t1 = normalize(arr);
+  assert.equal(t1.meta.format, 'posthog'); assert.equal(t1.traceId, '0af7651916cd43dd8448eb211c80319c');
+  assert.equal(t1.spans[0].spanId, '00000000000000a1'); assert.equal(t1.spans[0].parentId, null);
+  assert.equal(t1.spans[1].parentId, '00000000000000a1');
+  assert.equal(t1.spans[1].kind, 'client'); assert.equal(t1.spans[1].status, 'error'); assert.equal(t1.spans[1].statusMessage, 'boom');
+  assert.ok(Math.abs(t1.spans[1].start - 1.499877) < 1e-6);   // ns precision kept from ISO strings
+  assert.equal(t1.spans[1].duration, 2);
+  const t2 = normalize({ results: arr, hasMore: true, nextOffset: 2 });
+  assert.ok(t2.meta.warnings.some((w) => /hasMore/.test(w)));
+});
 console.log(`${n} tests passed`);
