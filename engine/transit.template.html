@@ -17,17 +17,61 @@
   #hops { width: 1200px; box-sizing: border-box; padding: 4px 24px 24px; font-size: 13px; }
   #hops table { border-collapse: collapse; width: 100%; }
   #hops td, #hops th { text-align: left; padding: 3px 8px; border-bottom: 1px solid #eee; }
-  .render #controls, .render #hops { display: none; }
+  #wrap { display: flex; align-items: flex-start; }
+  #main { width: 1200px; flex: none; }
+  #panel { width: 380px; flex: none; box-sizing: border-box; height: 900px; overflow: auto; border-left: 2px solid #111; padding: 0 18px 24px; font-size: 13px; position: sticky; top: 0; }
+  #panel .hdr { display: flex; justify-content: space-between; align-items: center; background: #111; color: #fff; margin: 0 -18px 12px; padding: 10px 18px; font-weight: 700; letter-spacing: .04em; }
+  #panel .hdr button { background: none; border: 0; color: #fff; font-size: 20px; cursor: pointer; }
+  #panel h2 { font-size: 18px; margin: 6px 0 10px; word-break: break-word; }
+  #panel h3 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #4A4A4A; margin: 18px 0 6px; }
+  #panel table { border-collapse: collapse; width: 100%; }
+  #panel th { text-align: left; color: #4A4A4A; font-weight: 400; padding: 3px 8px 3px 0; vertical-align: top; white-space: nowrap; }
+  #panel td { padding: 3px 0; word-break: break-word; }
+  #panel table.attrs th { white-space: normal; word-break: break-all; font-family: ui-monospace, monospace; font-size: 11px; width: 45%; }
+  #panel ul { margin: 0; padding: 0; list-style: none; }
+  #panel a { color: #111; text-decoration: none; display: block; padding: 3px 0; }
+  #panel a:hover { text-decoration: underline; }
+  #panel .dot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; margin-right: 6px; }
+  #panel .route { color: #4A4A4A; }
+  #panel .muted { color: #9A9A9A; margin: 4px 0; }
+  #panel .tag { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 8px; background: #E7E7E7; }
+  #panel .tag.err { background: #D42A1E; color: #fff; } #panel .tag.slow { background: #E89A00; }
+  #panel .contract { border: 2px dashed #9A9A9A; padding: 10px; color: #4A4A4A; border-radius: 6px; }
+  #panel .empty { padding-top: 40px; color: #4A4A4A; }
+  kbd { font: 700 11px ui-monospace, monospace; border: 1px solid #111; border-radius: 4px; padding: 1px 5px; background: #fff; }
+  #speed { display: flex; gap: 0; } #speed button { min-width: 0; border-radius: 0; padding: 6px 10px; margin-left: -2px; }
+  #speed button:first-child { border-radius: 18px 0 0 18px; } #speed button:last-child { border-radius: 0 18px 18px 0; }
+  #speed button.on { background: #111; color: #fff; }
+  #help { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 10; }
+  #help[hidden] { display: none; }
+  #help div { background: #fff; padding: 22px 30px; border-radius: 8px; min-width: 380px; }
+  #help td { padding: 4px 14px 4px 0; }
+  .render #controls, .render #hops, .render #panel, .render #help { display: none !important; }
 </style>
 </head>
 <body>
+<div id="wrap"><div id="main">
 <canvas id="stage" width="1200" height="900"></canvas>
 <div id="controls">
   <button id="play">Play</button>
   <input id="scrub" type="range" min="0" max="1" step="0.0001" value="0">
+  <span id="speed"><button data-s="0.5">0.5x</button><button data-s="1" class="on">1x</button><button data-s="2">2x</button></span>
   <span class="t" id="tlabel"></span>
 </div>
 <div id="hops"></div>
+</div><aside id="panel"></aside></div>
+<div id="help" hidden><div><h3>Keyboard shortcuts</h3><table>
+<tr><td><kbd>Space</kbd></td><td>play / pause</td></tr>
+<tr><td><kbd>N</kbd> <kbd>↓</kbd> <kbd>Shift</kbd>+<kbd>→</kbd></td><td>next hop</td></tr>
+<tr><td><kbd>P</kbd> <kbd>↑</kbd> <kbd>Shift</kbd>+<kbd>←</kbd></td><td>previous hop</td></tr>
+<tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>seek 0.5 s</td></tr>
+<tr><td><kbd>,</kbd> <kbd>.</kbd></td><td>step one frame</td></tr>
+<tr><td><kbd>Home</kbd> <kbd>End</kbd></td><td>start / end</td></tr>
+<tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>speed 0.5x / 1x / 2x</td></tr>
+<tr><td>click</td><td>station, train or line: select that hop</td></tr>
+<tr><td>pause</td><td>selects the hop in progress</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>deselect / close</td></tr>
+<tr><td><kbd>?</kbd></td><td>this help</td></tr></table></div></div>
 <script>
 /*__TRACE_DATA__*/
 </script>
@@ -476,30 +520,200 @@ if (hopsEl) {
   hopsEl.innerHTML = '<h3>Hops</h3><table><tr><th>start</th><th>from</th><th>to</th><th>span</th><th>status</th><th>contract</th></tr>' +
     hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? 'error' : c.slow ? 'slow' : 'ok'}</td><td>${nodes.get(c.to).inferred ? 'infrastructure hop' : 'unmatched (contracts not indexed)'}</td></tr>`).join('') + '</table>';
 }
-// ------------------------------------------------------------------
+// ------------------------------------------------------------------ interactive layer (never runs in render mode)
+// renderAt(t) above stays a pure function of t. Selection, speed and the panel live here and only draw an
+// overlay after renderAt, so the video frames (render mode) are byte-identical with or without this code.
 const q = new URLSearchParams(location.search);
-const scrub = document.getElementById('scrub'), btn = document.getElementById('play'), lab = document.getElementById('tlabel');
+const RENDER = !!window.__RENDER_MODE;
+if (RENDER) document.documentElement.classList.add('render');
+const $ = (id) => document.getElementById(id);
+const scrub = $('scrub'), btn = $('play'), lab = $('tlabel');
+const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 scrub.max = SECONDS;
-let T = q.has('t') ? parseFloat(q.get('t')) || 0 : 0, playing = false, last = null;
-function show(t) { T = clamp(t, 0, SECONDS); renderAt(T); scrub.value = T; lab.textContent = `${T.toFixed(2)} s / ${SECONDS.toFixed(2)} s  (frame ${Math.round(T * FPS)})`; }
+let T = q.has('t') ? parseFloat(q.get('t')) || 0 : 0, playing = false, last = null, SPEED = 1;
+let sel = null;   // selected span (object from spans)
+const hopOfSpan = (s) => s && (hops.find((c) => c.span === s) || hops.find((c) => c.callee === s));
+const tOfMs = (ms) => clamp(VIZ.frameOfTraceMs(ms) / FPS, 0, SECONDS);
+function drawSelection(tm) {
+  if (!sel) return;
+  const c = hopOfSpan(sel);
+  ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (c) {
+    const e = edgeOf(c);
+    ctx.globalAlpha = 0.22; ctx.strokeStyle = C.ink; ctx.lineWidth = LW + 12; strokePath(e.path, e.path.len);
+    ctx.globalAlpha = 1; ctx.strokeStyle = e.color; ctx.lineWidth = LW + 2; strokePath(e.path, e.path.len);
+  }
+  const n = nodes.get(c ? c.to : nodeOf(sel));
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.roundRect(n.x - 17, n.y + n.top - 17, 34, n.bot - n.top + 34, 17); ctx.stroke(); ctx.setLineDash([]);
+  // strip: the selected span's extent
+  const a = sx(sel.start), b = sx(sel.end);
+  ctx.fillStyle = C.ink; ctx.globalAlpha = 0.85; ctx.fillRect(a, SY - 20, Math.max(3, b - a), 4); ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(a, SY - 22); ctx.lineTo(a, SY + 10); ctx.lineWidth = 2; ctx.stroke();
+  ctx.restore();
+}
+function show(t) {
+  T = clamp(t, 0, SECONDS); renderAt(T); drawSelection(traceMsAt(T));
+  scrub.value = T; lab.textContent = `${T.toFixed(2)} s / ${SECONDS.toFixed(2)} s  (frame ${Math.round(T * FPS)})  ·  ${SPEED}x`;
+}
 function tick(ts) {
-  if (!playing || window.__RENDER_MODE) return;
-  if (last != null) { let nt = T + (ts - last) / 1000; if (nt >= SECONDS) nt = 0; show(nt); }
+  if (!playing || RENDER) return;
+  if (last != null) { let nt = T + SPEED * (ts - last) / 1000; if (nt >= SECONDS) nt = 0; show(nt); }
   last = ts; requestAnimationFrame(tick);
 }
-function setPlaying(p) { playing = p; last = null; btn.textContent = p ? 'Pause' : 'Play'; if (p) requestAnimationFrame(tick); }
-btn.onclick = () => setPlaying(!playing);
-cv.onclick = () => setPlaying(!playing);
-scrub.oninput = () => { setPlaying(false); show(parseFloat(scrub.value)); };
-addEventListener('keydown', (ev) => {
-  if (ev.code === 'Space') { ev.preventDefault(); setPlaying(!playing); }
-  if (ev.code === 'ArrowRight') { setPlaying(false); show(Math.round(T * FPS + 1) / FPS); }
-  if (ev.code === 'ArrowLeft') { setPlaying(false); show(Math.round(T * FPS - 1) / FPS); }
+// Playing keeps the map clean; pausing with nothing chosen picks the hop in progress (or the last one to start).
+function setPlaying(p, auto = false) {
+  playing = p && !RENDER; last = null; btn.textContent = playing ? 'Pause' : 'Play';
+  if (playing) { if (sel) select(null, false); requestAnimationFrame(tick); }
+  else if (auto && !sel) { const tm = traceMsAt(T); const c = hops.filter((h) => h.start <= tm).pop(); if (c) select(c.span, false); }
+}
+function setSpeed(s) {
+  SPEED = s;
+  document.querySelectorAll('#speed button').forEach((b) => b.classList.toggle('on', Number(b.dataset.s) === s));
+  show(T);
+}
+// ---- panel
+const panel = $('panel');
+const KIND = (k) => k || 'internal';
+function spanLink(s) {
+  const n = nodes.get(nodeOf(s)) || nodes.get(s.service);
+  return `<a href="#span=${encodeURIComponent(s.spanId)}" data-span="${esc(s.spanId)}"><span class="dot" style="background:${n ? n.color : C.infra}"></span>${esc(s.service)} · ${esc(s.name)}</a>`;
+}
+function renderPanel() {
+  if (!sel) { panel.innerHTML = `<div class="empty"><b>No hop selected</b><p>Pause, press <kbd>N</kbd>, or click a station, train or line to inspect a hop.</p></div><h3>Shortcuts</h3>` + document.querySelector('#help table').outerHTML; return; }
+  const s = sel, c = hopOfSpan(s), i = c ? hops.indexOf(c) : -1;
+  const p = s.parentId && byId.get(s.parentId), ch = kids.get(s.spanId).slice().sort((a, b) => a.start - b.start);
+  const attrs = Object.entries(s.attrs || {});
+  const row = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`;
+  panel.innerHTML =
+    `<div class="hdr"><span class="hopn">${c ? `HOP ${i + 1} / ${hops.length}` : 'SPAN (no hop)'}</span><button id="pclose" title="Deselect (Esc)">×</button></div>` +
+    (c ? `<div class="route">${esc(c.from)} → ${esc(c.to)}${nodes.get(c.to).inferred ? ' <span class="tag">infrastructure</span>' : ''}</div>` : '') +
+    `<h2>${esc(s.name)}</h2>` +
+    `<table>` +
+    row('service', esc(s.service)) +
+    (s.resource && s.resource !== s.name ? row('resource', esc(s.resource)) : '') +
+    row('kind', esc(KIND(s.kind))) +
+    row('start', `+${fmtMs(s.start)}`) +
+    row('duration', fmtMs(s.duration)) +
+    row('self time', fmtMs(s.self) + (s.slow ? ' <span class="tag slow">DELAY</span>' : '')) +
+    row('status', s.status === 'error' ? `<span class="tag err">ERROR</span> ${esc(s.statusMessage || '')}` : esc(s.status || 'unset')) +
+    row('span id', `<code>${esc(s.spanId)}</code>`) +
+    `</table>` +
+    `<h3>Attributes</h3>` +
+    (attrs.length ? `<table class="attrs">${attrs.map(([k, v]) => row(esc(k), esc(typeof v === 'object' ? JSON.stringify(v) : v))).join('')}</table>` : '<p class="muted">none</p>') +
+    `<p class="muted">${D.meta && D.meta.redacted ? `${D.meta.redacted} attribute(s) redacted across this trace before rendering.` : 'Sensitive-looking keys are redacted at build time.'}</p>` +
+    `<h3>Parent</h3>${p ? spanLink(p) : '<p class="muted">root span</p>'}` +
+    `<h3>Children (${ch.length})</h3>${ch.length ? '<ul>' + ch.map((k) => `<li>${spanLink(k)}</li>`).join('') + '</ul>' : '<p class="muted">none</p>'}` +
+    `<h3>Expected request / response</h3><div class="contract">Contracts not indexed. A future contract layer will show the expected request and response for this hop here.</div>`;
+}
+function select(s, jump = true) {
+  sel = s || null;
+  if (sel && jump) { setPlaying(false); show(tOfMs(sel.start)); } else show(T);
+  renderPanel();
+  const h = sel ? `#span=${encodeURIComponent(sel.spanId)}` : ' ';
+  try { history.replaceState(null, '', location.pathname + location.search + h); } catch (e) { /* file:// in some browsers */ }
+}
+const selectHop = (c) => c && select(c.span);
+function stepHop(dir) {
+  const tm = traceMsAt(T), cur = sel ? hopOfSpan(sel) : null;
+  let i;
+  if (cur) i = hops.indexOf(cur) + dir;
+  else i = dir > 0 ? hops.findIndex((c) => c.start > tm - 1e-9) : hops.map((c) => c.start < tm).lastIndexOf(true);
+  if (i < 0) i = dir > 0 ? 0 : hops.length - 1;
+  selectHop(hops[clamp(i, 0, hops.length - 1)]);
+}
+panel.addEventListener('click', (ev) => {
+  const a = ev.target.closest('[data-span]');
+  if (a) { ev.preventDefault(); select(byId.get(a.dataset.span)); return; }
+  if (ev.target.id === 'pclose') select(null, false);
 });
-if (window.__RENDER_MODE) document.documentElement.classList.add('render');
-show(T);
+// ---- canvas hit testing (in CSS px of the 1200x900 stage)
+function hitTest(x, y) {
+  const tm = traceMsAt(T);
+  // trains first: they sit on top
+  for (const tr of calls.map((c) => trainFor(c, tm)).filter(Boolean)) {
+    const p = at(tr.e.path, tr.p * tr.e.path.len);
+    if (Math.hypot(p.x - x, p.y - y) < 16) return { type: 'train', call: tr.c };
+  }
+  for (const n of order) {
+    if (x > n.x - 16 && x < n.x + 16 && y > n.y + n.top - 16 && y < n.y + n.bot + 16) return { type: 'station', node: n };
+    const ly = n.y + n.top - 19;
+    if (Math.abs(x - n.x) < 80 && y > ly - 16 && y < ly + 4) return { type: 'station', node: n };
+  }
+  // strip hop ticks
+  if (y > SY - 40 && y < SY + 30) {
+    let best = null, bd = 8;
+    for (const c of hops) { const d = Math.abs(sx(c.start) - x); if (d < bd) { bd = d; best = c; } }
+    if (best) return { type: 'strip', call: best };
+  }
+  // line segments
+  let best = null, bd = 9;
+  for (const e of edges.values()) for (const pt of e.path.pts) { const d = Math.hypot(pt[0] - x, pt[1] - y); if (d < bd) { bd = d; best = e; } }
+  if (best) {
+    const cs = best.calls.slice().sort((a, b) => a.start - b.start);
+    const c = cs.find((k) => tm >= k.start && tm < k.end) || cs.find((k) => k.start >= tm) || cs[0];
+    return { type: 'segment', call: c };
+  }
+  return null;
+}
+function onCanvasClick(ev) {
+  const r = cv.getBoundingClientRect();
+  const h = hitTest((ev.clientX - r.left) * STAGE.width / r.width, (ev.clientY - r.top) * STAGE.height / r.height);
+  if (!h) { setPlaying(!playing, true); return; }
+  if (h.call) return selectHop(h.call);
+  const n = h.node, tm = traceMsAt(T);
+  if (n.id === root.service && !hops.some((c) => c.to === n.id)) return select(root);
+  const arr = hops.filter((c) => c.to === n.id);
+  if (!arr.length) return select(spans.find((s) => nodeOf(s) === n.id) || root);
+  selectHop(arr.find((c) => c.start >= tm - 1e-9 && hopOfSpan(sel) !== c) || arr[0]);
+}
+cv.addEventListener('click', onCanvasClick);
+cv.addEventListener('mousemove', (ev) => {
+  const r = cv.getBoundingClientRect();
+  cv.style.cursor = hitTest((ev.clientX - r.left) * STAGE.width / r.width, (ev.clientY - r.top) * STAGE.height / r.height) ? 'pointer' : 'default';
+});
+btn.onclick = () => setPlaying(!playing, true);
+scrub.oninput = () => { setPlaying(false); show(parseFloat(scrub.value)); };
+document.querySelectorAll('#speed button').forEach((b) => { b.onclick = () => setSpeed(Number(b.dataset.s)); });
+const help = $('help');
+const toggleHelp = (v) => { help.hidden = v === undefined ? !help.hidden : !v; };
+help.addEventListener('click', () => toggleHelp(false));
+addEventListener('keydown', (ev) => {
+  if (RENDER || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName) && ev.target.type !== 'range') return;
+  const k = ev.key;
+  let handled = true;
+  if (k === '?' || (k === '/' && ev.shiftKey)) toggleHelp();
+  else if (k === 'Escape') { if (!help.hidden) toggleHelp(false); else select(null, false); }
+  else if (ev.code === 'Space') setPlaying(!playing, true);
+  else if (k === 'n' || k === 'N' || k === 'ArrowDown' || (ev.shiftKey && k === 'ArrowRight')) stepHop(1);
+  else if (k === 'p' || k === 'P' || k === 'ArrowUp' || (ev.shiftKey && k === 'ArrowLeft')) stepHop(-1);
+  else if (k === 'ArrowRight') { setPlaying(false); show(T + 0.5); }
+  else if (k === 'ArrowLeft') { setPlaying(false); show(T - 0.5); }
+  else if (k === '.') { setPlaying(false); show(Math.round(T * FPS + 1) / FPS); }
+  else if (k === ',') { setPlaying(false); show(Math.round(T * FPS - 1) / FPS); }
+  else if (k === 'Home') { setPlaying(false); show(0); }
+  else if (k === 'End') { setPlaying(false); show(SECONDS - 1 / FPS); }
+  else if (k === '1') setSpeed(0.5);
+  else if (k === '2') setSpeed(1);
+  else if (k === '3') setSpeed(2);
+  else handled = false;
+  if (handled) ev.preventDefault();
+});
+// test hook for the Playwright interaction tests
+window.TRANSIT_UI = {
+  state: () => ({ t: T, playing, speed: SPEED, selected: sel && sel.spanId, hop: sel && hopOfSpan(sel) ? hops.indexOf(hopOfSpan(sel)) : -1, help: !help.hidden }),
+  hops: hops.map((c) => ({ spanId: c.span.spanId, from: c.from, to: c.to, start: c.start, t: tOfMs(c.start) })),
+  stations: order.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+  trainPoints: () => calls.map((c) => trainFor(c, traceMsAt(T))).filter(Boolean).map((r) => { const p = at(r.e.path, r.p * r.e.path.len); return { x: p.x, y: p.y, spanId: r.c.span.spanId }; }),
+  edgePoint: (i) => { const c = hops[i], e = edgeOf(c), p = e.path.pts[Math.floor(e.path.pts.length / 2)]; return { x: p[0], y: p[1] }; },
+};
+const want = !RENDER && (q.get('span') || q.get('pin') || (location.hash.match(/span=([^&]+)/) || [])[1]);
+renderPanel();
+if (want && byId.has(decodeURIComponent(want))) select(byId.get(decodeURIComponent(want)), !q.has('t'));
+else show(T);
 if (document.fonts) document.fonts.ready.then(() => show(T));
-if (!window.__RENDER_MODE && !q.has('t') && !q.has('paused')) setPlaying(true);
+if (!RENDER && !q.has('t') && !q.has('paused') && !want) setPlaying(true);
 })();
 </script>
 </body>

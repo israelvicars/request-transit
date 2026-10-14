@@ -42,3 +42,16 @@ Homebrew is present, otherwise the script stops with the install command for the
 - Useful flags: `--slow-ms N`, `--ms-per-sec N`, `--target-seconds 9`, `--trace-id ID`, `--format otlp|datadog|datadog-v2|internal`.
 
 Details: `references/adapters.md`, `references/design-system.md`, `references/config.md`, `references/extractors.md`.
+
+
+## Interactive page
+
+Open `out/<name>/transit.html` in a browser. Video renders hide all of this, and `renderAt(t)` stays a pure function of t. Selection is drawn as an overlay after it, so frames are byte-identical.
+
+- **Hops:** `N` / `↓` / `Shift+→` next hop, `P` / `↑` / `Shift+←` previous hop. The hop is highlighted and the panel opens.
+- **Time:** `←` / `→` seek 0.5 s, `,` / `.` one frame, `Home` / `End`, `Space` play/pause. Pausing selects the hop in progress, and playing clears the selection.
+- **Speed:** `1` / `2` / `3` = 0.5x / 1x / 2x, or the speed buttons.
+- **Click:** a station, train, line or strip tick to select that hop. Clicking empty map toggles play.
+- **Side panel:** service, name/resource, kind, start, duration, self time, status/error, attributes (already redacted), plus parent and child links you can click. Also a placeholder for the expected request/response (contracts not indexed yet).
+- **Links:** `#span=<id>` (or `?span=` / `?pin=`) selects a span. `?` shows the shortcut help, and `Esc` closes it or deselects.
+- **Tests:** `npm run test:ui` runs the Playwright keyboard and click tests.

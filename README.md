@@ -37,3 +37,16 @@ Your own trace: `node scripts/render.mjs path/to/trace.json --name mine --title 
 - **Cursor**: add it under `.cursor/skills/transit/` or reference `SKILL.md` from a project rule.
 
 All sample data is synthetic. Span attributes can contain PII: see `references/adapters.md#privacy`.
+
+
+## Interactive page
+
+Open `out/<name>/transit.html` in a browser. Video renders hide all of this, and `renderAt(t)` stays a pure function of t. Selection is drawn as an overlay after it, so frames are byte-identical.
+
+- **Hops:** `N` / `↓` / `Shift+→` next hop, `P` / `↑` / `Shift+←` previous hop. The hop is highlighted and the panel opens.
+- **Time:** `←` / `→` seek 0.5 s, `,` / `.` one frame, `Home` / `End`, `Space` play/pause. Pausing selects the hop in progress, and playing clears the selection.
+- **Speed:** `1` / `2` / `3` = 0.5x / 1x / 2x, or the speed buttons.
+- **Click:** a station, train, line or strip tick to select that hop. Clicking empty map toggles play.
+- **Side panel:** service, name/resource, kind, start, duration, self time, status/error, attributes (already redacted), plus parent and child links you can click. Also a placeholder for the expected request/response (contracts not indexed yet).
+- **Links:** `#span=<id>` (or `?span=` / `?pin=`) selects a span. `?` shows the shortcut help, and `Esc` closes it or deselects.
+- **Tests:** `npm run test:ui` runs the Playwright keyboard and click tests.
