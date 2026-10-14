@@ -8,5 +8,6 @@ import express from './express.mjs';
 import nest from './nest.mjs';
 import topicProducer from './topic-producer.mjs';
 import openapi from './openapi.mjs';
-export const EXTRACTORS = [zod, joi, classValidator, tsTypes, express, nest, topicProducer, openapi];
-export const EXTRACTOR_VERSION = 'transit-contracts-1';
+import protobuf from './protobuf.mjs';
+export const EXTRACTORS = [zod, joi, classValidator, tsTypes, express, nest, topicProducer, openapi, protobuf];
+export const EXTRACTOR_VERSION = 'transit-contracts-2';

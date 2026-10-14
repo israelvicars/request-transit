@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { EXTRACTORS, EXTRACTOR_VERSION } from './extractors/index.mjs';
 import { blankComments } from './text.mjs';
 
-const SRC_EXT = ['.ts', '.tsx', '.mts', '.js', '.mjs', '.jsx'];
+const SRC_EXT = ['.ts', '.tsx', '.mts', '.js', '.mjs', '.jsx', '.proto'];
 const SKIP_DIR = /^(node_modules|dist|build|\.git|coverage|\.next|\.transit-cache)$/;
 const sha = (s) => createHash('sha256').update(s).digest('hex');
 const posix = (p) => p.split(sep).join('/');
@@ -22,7 +22,7 @@ export function loadConfig(file) {
   return {
     file: resolve(file), base,
     services: cfg.services || {}, packages: cfg.packages || [], infra: cfg.infra || [],
-    prefixes: cfg.prefixes || [], rpcPackagePrefix: cfg.rpcPackagePrefix,
+    prefixes: cfg.prefixes || [], protoPaths: (cfg.protoPaths || []).map((p) => resolve(base, p)), rpcPackagePrefix: cfg.rpcPackagePrefix,
   };
 }
 function walk(dir, out = []) {
@@ -78,9 +78,12 @@ export function buildIndex(configFile, { cacheDir = '.transit-cache/contracts', 
     if (existsSync(cf)) { parsed = JSON.parse(readFileSync(cf, 'utf8')); hits++; }
     else {
       const text = extname(abs) === '.json' ? src : blankComments(src);
-      parsed = { rel, hash: key, symbols: {}, routes: [], ...(extname(abs) === '.json' ? { imports: {}, reexports: [] } : parseImports(text)) };
+      const proto = extname(abs) === '.proto';
+      parsed = { rel, hash: key, symbols: {}, routes: [], ...(extname(abs) === '.json' || proto ? { imports: {}, reexports: [] } : parseImports(text)) };
       for (const ex of EXTRACTORS) {
         if (!ex.test(text, abs)) continue;
+        if (proto !== (ex.name === 'protobuf')) continue;   // .proto files belong to the protobuf extractor only
+        if (proto && ex.imports) parsed.reexports = ex.imports(text).map((spec) => ({ spec, all: true, proto: true }));
         if (ex.symbols && extname(abs) !== '.json') for (const s of ex.symbols(text)) if (!parsed.symbols[s.name] || rank(s.kind) > rank(parsed.symbols[s.name].kind)) parsed.symbols[s.name] = { ...s, extractor: ex.name };
         if (ex.routes) for (const r of ex.routes(text, abs)) parsed.routes.push({ ...r, extractor: ex.name });
       }
@@ -92,6 +95,9 @@ export function buildIndex(configFile, { cacheDir = '.transit-cache/contracts', 
   }
   function resolveModule(fromAbs, spec) {
     let base;
+    if (extname(fromAbs) === '.proto') {   // proto imports: relative to the file, then each protoPath
+      return [dirname(fromAbs), ...cfg.protoPaths, cfg.base].map((d) => resolve(d, spec)).find((c) => existsSync(c)) || null;
+    }
     if (spec.startsWith('.')) base = resolve(dirname(fromAbs), spec);
     else {
       const name = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
@@ -107,6 +113,10 @@ export function buildIndex(configFile, { cacheDir = '.transit-cache/contracts', 
     const k = abs + '#' + name; if (seen.has(k)) return null; seen.add(k);
     const f = parseFile(abs);
     if (f.symbols[name]) return { ...f.symbols[name], file: f.rel, abs };
+    if (name.includes('.')) {   // protobuf: shop.Money, Outer.Inner -> try shorter suffixes
+      const parts = name.split('.');
+      for (let i = 1; i < parts.length; i++) { const short = parts.slice(i).join('.'); if (f.symbols[short]) return { ...f.symbols[short], file: f.rel, abs }; }
+    }
     const imp = f.imports[name];
     if (imp) { const m = resolveModule(abs, imp.spec); if (m) return lookup(m, imp.name, seen); return { unresolved: `${name} from '${imp.spec}' (module not found)` }; }
     for (const r of f.reexports) {
@@ -151,7 +161,7 @@ export function buildIndex(configFile, { cacheDir = '.transit-cache/contracts', 
     if (!sym || sym.unresolved) return { schema: { t: 'unknown', ref: ref.symbol, unresolved: true }, name: ref.symbol, kind: 'unresolved', confidence: 'low', via: ref.via, notes: [`could not follow ${ref.symbol} -> ${hit.target}`] };
     let schema = inline(sym.node, sym.abs, 0, notes, kinds);
     if (ref.array) schema = { t: 'array', items: schema };
-    const validator = ['zod', 'joi', 'class-validator'].includes(sym.kind);
+    const validator = ['zod', 'joi', 'class-validator', 'protobuf'].includes(sym.kind);
     const confidence = notes.length ? 'low' : validator && !ref.typeOnly ? 'high' : 'medium';
     return { schema, name: ref.symbol, kind: sym.kind, source: `${sym.file}:${sym.line}`, crossPackage: posix(relative(cfg.base, sym.abs)).split('/')[0] !== posix(relative(cfg.base, abs)).split('/')[0] || undefined, confidence, via: ref.via, notes };
   }
@@ -192,7 +202,7 @@ export function buildIndex(configFile, { cacheDir = '.transit-cache/contracts', 
     version: EXTRACTOR_VERSION,
     key: sha(EXTRACTOR_VERSION + JSON.stringify(cfg.services) + fileHashes.join('\n')).slice(0, 16),
     commit,
-    config: { file: posix(relative(process.cwd(), cfg.file)), infra: cfg.infra, prefixes: cfg.prefixes, rpcPackagePrefix: cfg.rpcPackagePrefix },
+    config: { file: posix(relative(process.cwd(), cfg.file)), protoPaths: cfg.protoPaths.map((p) => posix(relative(cfg.base, p))), infra: cfg.infra, prefixes: cfg.prefixes, rpcPackagePrefix: cfg.rpcPackagePrefix },
     services: JSON.parse(JSON.stringify(services)),
     files: fileHashes,
     entries,
@@ -204,7 +214,7 @@ export function buildIndex(configFile, { cacheDir = '.transit-cache/contracts', 
   log(`indexed ${entries.length} contract entries from ${files.size} files (${hits} cached, ${misses} parsed) -> ${out}`);
   return { index, out, latest: join(cacheDir, 'index.json'), hits, misses };
 }
-const rank = (k) => ({ 'class-validator': 3, zod: 3, joi: 3, alias: 2, 'ts-types': 1 }[k] || 0);
+const rank = (k) => ({ protobuf: 3, 'class-validator': 3, zod: 3, joi: 3, alias: 2, 'ts-types': 1 }[k] || 0);
 // JSON with sorted object keys (arrays keep their order) so the same inputs give the same bytes
 export function stable(v) {
   const norm = (x) => Array.isArray(x) ? x.map(norm) : x && typeof x === 'object' ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, norm(x[k])])) : x;

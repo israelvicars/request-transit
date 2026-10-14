@@ -60,7 +60,7 @@ Open `out/<name>/transit.html` in a browser. Video renders hide all of this, and
 
 The contract layer runs only when you ask for it. It never runs on its own.
 
-- `node scripts/transit.mjs index --config transit.config.json` extracts request/response shapes from your code into `.transit-cache/contracts/`. It reads Express + Zod/Joi, NestJS + class-validator DTOs, TypeScript types and OpenAPI, and resolves imports across shared packages.
+- `node scripts/transit.mjs index --config transit.config.json` extracts request/response shapes from your code into `.transit-cache/contracts/`. It reads Express + Zod/Joi, NestJS + class-validator DTOs, TypeScript types, protobuf and OpenAPI, and resolves imports across shared packages.
 - `node engine/build.mjs <trace> --contracts` attaches the index to the page. Each hop is then shown as matched, infrastructure or unmatched (with a reason).
 - `npm run index:example && npm run build:contracts` demos it on the synthetic `examples/astronomy-shop`.
 

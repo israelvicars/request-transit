@@ -15,6 +15,7 @@ The contract layer is opt-in. Nothing reads source code until someone runs `node
    | `express` | `app/router.<verb>('/path', ...)`. Request from `validate(X)`, `celebrate({ body: X })` or `X.parse(req.body)`; response from `Response<T>` | http entries |
    | `nest` | `@Controller` + `@Get/@Post/...`, `@GrpcMethod('Svc','Method')`, `@EventPattern('topic')`. Request from the `@Body()`/`@Payload()`/first parameter type or `X.parse(param)`; response from the return type (Promise/Observable unwrapped) | http, rpc and topic-consumer entries |
    | `topic-producer` | `.emit('topic', payload satisfies T)`, `publish<T>('topic', ...)` | topic-producer entries |
+   | `protobuf` | `.proto`: `service`/`rpc` (incl. `stream`) become rpc entries. Messages (nested ones as `Outer.Inner` and `Inner`), enums, `repeated`, `optional`, `map<K,V>`, `oneof` (members optional) and well-known types are read, and `import`s are followed (relative to the file, then `config.protoPaths`) | rpc entries + IDL shapes (high) |
    | `openapi` | OpenAPI 3 JSON: requestBody and first 2xx `application/json` schemas, with `$ref` resolved | http entries (high) |
 
    The parsers are bracket-aware regex scanners, not a compiler. They miss unusual code shapes; when that happens they leave a gap rather than guessing.
@@ -39,7 +40,6 @@ The contract layer is opt-in. Nothing reads source code until someone runs `node
 
 ## Not yet
 
-- protobuf
 - Pydantic/FastAPI
 - queue-handler event switches
 - contract diff (`--baseline`, story 3)

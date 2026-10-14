@@ -10,6 +10,7 @@ import joi from '../contracts/extractors/joi.mjs';
 import cv from '../contracts/extractors/class-validator.mjs';
 import ts from '../contracts/extractors/ts-types.mjs';
 import { show } from '../contracts/schema.mjs';
+import proto from '../contracts/extractors/protobuf.mjs';
 
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok  ', name); };
 const CFG = 'examples/astronomy-shop/transit.config.json', CACHE = '.transit-cache/test-contracts';
@@ -34,6 +35,17 @@ t('ts-types: interface with nested literal, union enum, extends', () => {
   assert.equal(show(a.node), '{ x?: "a" | "b"; y: { z: number }[] }'); assert.deepEqual(a.node.extends, ['Base']);
   assert.equal(b.node.t, 'string'); assert.equal(b.node.nullable, true);
 });
+t('protobuf: services, nested messages, enums, repeated, optional, map, oneof, imports', () => {
+  const src = 'syntax = "proto3";\npackage p;\nimport "a/b.proto";\nservice S { rpc Get(Req) returns (stream p.Res) {} rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty); }\nmessage Req { string id = 1; optional int32 n = 2; repeated Item items = 3; map<string, int64> tags = 4; oneof k { string a = 5; bytes b = 6; } }\nmessage Res { Outer.Inner x = 1;\n message Inner { bool ok = 1; Kind kind = 2; }\n enum Kind { K_UNSPECIFIED = 0; K_A = 1; } }';
+  const syms = Object.fromEntries(proto.symbols(src).map((x) => [x.name, x]));
+  assert.equal(show(syms.Req.node), '{ id: string; n?: integer; items: Item[]; tags: {}; a?: string; b?: string /* bytes */ }');
+  assert.ok(syms['Res.Inner'] && syms.Inner && syms['Res.Kind']);
+  assert.deepEqual(syms.Kind.node.values, ['K_UNSPECIFIED', 'K_A']);
+  assert.deepEqual(proto.imports(src), ['a/b.proto']);
+  const [get, ping] = proto.routes(src);
+  assert.equal(get.rpc, 'S/Get'); assert.equal(get.request.symbol, 'Req'); assert.equal(get.response.symbol, 'Res'); assert.equal(get.response.array, true);
+  assert.equal(ping.request.void, true);
+});
 t('path normalization: params, ids, optional /api/vN and configured prefixes', () => {
   assert.ok(normPath('/users/:id').includes('/users/{}'));
   assert.ok(normPath('/users/{userId}/orders/42?x=1').includes('/users/{}/orders/{}'));
@@ -45,9 +57,9 @@ t('path normalization: params, ids, optional /api/vN and configured prefixes', (
 const { index, hits: h1 } = buildIndex(CFG, { cacheDir: CACHE });
 const by = (svc, k) => index.entries.find((e) => e.service === svc && (e.rpc === k || e.path === k || e.topic === k));
 t('index: every extractor kind, file:line, confidence', () => {
-  assert.equal(index.entries.length, 12);
+  assert.equal(index.entries.length, 15);
   const kinds = new Set(index.entries.flatMap((e) => [e.request && e.request.kind, e.response && e.response.kind]).filter(Boolean));
-  for (const k of ['zod', 'joi', 'class-validator', 'ts-types', 'openapi']) assert.ok(kinds.has(k), k);
+  for (const k of ['zod', 'joi', 'class-validator', 'ts-types', 'openapi', 'protobuf']) assert.ok(kinds.has(k), k);
   for (const e of index.entries) { assert.match(e.source, /^services\/.+:\d+$/); assert.ok(['high', 'medium', 'low'].includes(e.confidence)); }
   assert.equal(by('shipping', '/get-quote').source, 'services/shipping/src/routes.ts:39');
 });
@@ -78,9 +90,20 @@ t('matcher on the OTel demo checkout: matched, fallback, infra, unmatched', () =
   assert.equal(st('checkout', 'orders publish').state, 'infra');
   assert.equal(st('fraud-detection').state, 'fallback');
   assert.equal(st('accounting').state, 'matched');
-  assert.equal(st('product-catalog').state, 'unmatched'); assert.match(st('product-catalog').reason, /catalog\.proto/);
+  assert.equal(st('product-catalog').state, 'matched');                 // via catalog.proto
+  const pc = index.entries.find((e) => e.id === st('product-catalog').entryId);
+  assert.equal(pc.request.kind, 'protobuf'); assert.match(show(pc.response.schema), /price_usd: \{ currency_code: string; units: integer; nanos\?: integer \}/);   // imported shop/money.proto
+  assert.match(show(pc.response.schema), /region: "REGION_UNSPECIFIED" \| "REGION_US" \| "REGION_EU"/);   // nested enum
   const states = Object.values(m.bySpan).map((x) => x.state);
-  assert.equal(states.filter((x) => x === 'unmatched').length, 6);
+  assert.equal(states.filter((x) => x === 'unmatched').length, 0);
+  // unmatched stays visible: a service that is not configured, and a route the service does not have
+  const extra = { traceId: 't', meta: {}, spans: [
+    { spanId: 'r', parentId: null, service: 'gw', name: 'GET /', start: 0, duration: 5, status: 'ok', kind: 'server' },
+    { spanId: 'a', parentId: 'r', service: 'billing', name: 'GET /invoices/42', start: 1, duration: 1, status: 'ok', kind: 'server', attrs: { 'http.route': '/invoices/:id' } },
+    { spanId: 'b', parentId: 'r', service: 'shipping', name: 'POST /nope', start: 1, duration: 1, status: 'ok', kind: 'server' } ] };
+  const mx = matchTrace(extra, index);
+  assert.equal(mx.bySpan.a.state, 'unmatched'); assert.match(mx.bySpan.a.reason, /not in the config/);
+  assert.equal(mx.bySpan.b.state, 'unmatched'); assert.match(mx.bySpan.b.reason, /no entry for POST \/nope among 2 in shipping/);
 });
 t('opt-in: no index read without --contracts; missing index is an error, never an implicit index run', () => {
   const plain = build('samples/otel-demo-checkout.otlp.json', { out: `${CACHE}/plain.html` });

@@ -17,7 +17,7 @@ service names and route names are borrowed so the trace and the code meet.
 | email | Express + Zod, no response type: shown as a gap | express + zod |
 | accounting | NestJS `@EventPattern('orders')` | nest event (ts-types) |
 | fraud-detection | no code configured: falls back to the producer's shape | topic fallback (medium) |
-| product-catalog | only a `.proto` file, which no extractor reads yet: listed as unmatched | none |
+| product-catalog | `catalog.proto` (nested messages, enum, repeated, optional, map, oneof) importing `proto/shop/money.proto` | protobuf |
 
 Build the index (explicit, never automatic) and a contract-aware page:
 
