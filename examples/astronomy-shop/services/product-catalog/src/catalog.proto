@@ -1,0 +1,6 @@
+// SYNTHETIC. No extractor reads .proto files yet, so GetProduct hops stay unmatched.
+syntax = "proto3";
+package shop;
+service ProductCatalogService { rpc GetProduct(GetProductRequest) returns (Product) {} }
+message GetProductRequest { string id = 1; }
+message Product { string id = 1; string name = 2; }

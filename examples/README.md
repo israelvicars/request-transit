@@ -1,5 +1,3 @@
 # examples/
 
-Planned (milestone 3): a tiny, clearly synthetic sample app whose contracts (Zod + Express, a NestJS
-DTO, one protobuf) match the OpenTelemetry demo checkout trace in `../samples/`, so story 1 can show
-the contract side panel end to end. Nothing here yet.
+- `astronomy-shop/`: a SYNTHETIC sample code base whose routes match the OTel demo checkout trace in `../samples/`. It is used to demo the optional contract layer end to end (`npm run index:example && npm run build:contracts`).

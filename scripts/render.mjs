@@ -11,7 +11,11 @@ const { chromium } = await import('playwright');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2); const opt = {}; const pos = [];
-for (let i = 0; i < argv.length; i++) argv[i].startsWith('--') ? (opt[argv[i].slice(2)] = argv[++i]) : pos.push(argv[i]);
+for (let i = 0; i < argv.length; i++) {
+  if (!argv[i].startsWith('--')) { pos.push(argv[i]); continue; }
+  const k = argv[i].slice(2);
+  opt[k] = k === 'contracts' && (!argv[i + 1] || argv[i + 1].startsWith('--')) ? true : argv[++i];
+}
 if (!pos[0]) { console.error('usage: node scripts/render.mjs <trace.json> [--name NAME]'); process.exit(1); }
 const name = opt.name || 'trace';
 const dir = resolve(opt['out-dir'] || join(ROOT, 'out', name));

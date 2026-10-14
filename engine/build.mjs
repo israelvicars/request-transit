@@ -8,6 +8,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { normalize } from '../adapters/normalize.mjs';
+import { existsSync } from 'node:fs';
+import { matchTrace } from '../contracts/match.mjs';
+export const DEFAULT_INDEX = '.transit-cache/contracts/index.json';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // attribute keys dropped before anything is rendered (span attributes can carry PII)
@@ -33,7 +36,14 @@ export function build(file, opt = {}) {
   if (opt['slow-ms']) vizOpts.slowMs = Number(opt['slow-ms']);
   if (opt['ms-per-sec']) vizOpts.msPerSec = Number(opt['ms-per-sec']);
   if (opt['target-seconds']) vizOpts.targetSeconds = Number(opt['target-seconds']);
-  const js = `window.TRACE = ${JSON.stringify(trace)};\nwindow.VIZ_OPTS = ${JSON.stringify(vizOpts)};`.replace(/<\//g, '<\\/');
+  // contracts are opt-in: only an explicit --contracts [index.json] reads an index, and it never builds one
+  let contracts = null;
+  if (opt.contracts) {
+    const ix = opt.contracts === true ? DEFAULT_INDEX : opt.contracts;
+    if (!existsSync(ix)) throw new Error(`--contracts: no index at ${ix}. Build one first (ask the user): node scripts/transit.mjs index --config transit.config.json`);
+    contracts = matchTrace(trace, JSON.parse(readFileSync(ix, 'utf8')));
+  }
+  const js = `window.TRACE = ${JSON.stringify(trace)};\nwindow.VIZ_OPTS = ${JSON.stringify(vizOpts)};\nwindow.CONTRACTS = ${JSON.stringify(contracts)};`.replace(/<\//g, '<\\/');
   const face = (w) => `@font-face { font-family: "Transit Sans"; font-weight: ${w}; font-style: normal; src: url(data:font/woff;base64,${readFileSync(join(HERE, `fonts/arimo-${w}.woff`)).toString('base64')}) format("woff"); }`;
   const tpl = readFileSync(join(HERE, 'transit.template.html'), 'utf8');
   if (!tpl.includes('/*__TRACE_DATA__*/') || !tpl.includes('/*__FONTS__*/')) throw new Error('template placeholder missing');
@@ -41,7 +51,7 @@ export function build(file, opt = {}) {
   const out = resolve(opt.out || 'out/transit.html');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, html);
-  return { out, trace };
+  return { out, trace, contracts };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -50,10 +60,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   for (let i = 0; i < argv.length; i++) {
     if (!argv[i].startsWith('--')) { pos.push(argv[i]); continue; }
     const k = argv[i].slice(2);
-    if (k.startsWith('no-')) opt[k] = true; else opt[k] = argv[++i];
+    if (k.startsWith('no-')) opt[k] = true;
+    else if (k === 'contracts' && (!argv[i + 1] || argv[i + 1].startsWith('--'))) opt[k] = true;
+    else opt[k] = argv[++i];
   }
   if (!pos[0]) { console.error('usage: node engine/build.mjs <trace.json> [--out out/transit.html] [--title ...]'); process.exit(1); }
-  const { out, trace } = build(pos[0], opt);
+  const { out, trace, contracts } = build(pos[0], opt);
   for (const w of trace.meta.warnings) console.error('warning:', w);
-  console.log(`wrote ${out} (${trace.spans.length} spans, ${trace.meta.format}${trace.meta.synthetic ? ', synthetic' : ''}, ${trace.meta.redacted} attrs redacted)`);
+  console.log(`wrote ${out} (${trace.spans.length} spans, ${trace.meta.format}${trace.meta.synthetic ? ', synthetic' : ''}, ${trace.meta.redacted} attrs redacted${contracts ? `, contracts: ${Object.values(contracts.bySpan).filter((m) => m.state === 'matched' || m.state === 'fallback').length} matched / ${Object.values(contracts.bySpan).filter((m) => m.state === 'unmatched').length} unmatched / ${Object.values(contracts.bySpan).filter((m) => m.state === 'infra').length} infra` : ''})`);
 }
