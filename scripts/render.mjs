@@ -2,10 +2,12 @@
 // Frame-exact: the page's rAF loop is frozen and every frame is renderAt(i / fps).
 // usage: node scripts/render.mjs <trace.json> [--name NAME] [build options...]
 import { execFileSync } from 'node:child_process';
-import { chromium } from 'playwright';
+import { ensureSetup } from './setup.mjs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { build } from '../engine/build.mjs';
+await ensureSetup({ need: ['deps', 'browser', 'ffmpeg'] });
+const { chromium } = await import('playwright');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2); const opt = {}; const pos = [];

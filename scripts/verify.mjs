@@ -9,7 +9,9 @@ import { readdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright';
+import { ensureSetup } from './setup.mjs';
+await ensureSetup({ need: ['deps', 'browser', 'ffmpeg'] });
+const { chromium } = await import('playwright');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2); const opt = {}; const pos = [];

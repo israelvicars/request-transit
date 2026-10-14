@@ -8,6 +8,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { normalize } from '../adapters/normalize.mjs';
+import { ensureSetup } from './setup.mjs';
+await ensureSetup({ need: [] });
 const runChild = (file, args) => { try { execFileSync('node', [new URL(file, import.meta.url).pathname, ...args], { stdio: 'inherit' }); } catch (e) { process.exit(e.status || 1); } };
 const [backend, arg, ...rest] = process.argv.slice(2); const opt = {};
 for (let i = 0; i < rest.length; i++) if (rest[i].startsWith('--')) opt[rest[i].slice(2)] = rest[++i];

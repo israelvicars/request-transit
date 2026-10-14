@@ -7,11 +7,23 @@ description: Use when the user wants to visualize or share how a request moved t
 
 A public transit map for your requests. Everything runs locally; no span data leaves the machine.
 
+## First run
+
+Every script checks its own prerequisites the first time it runs (`scripts/setup.mjs`) and caches
+the result in `.transit-cache/setup.json`, so later runs skip the check:
+Node 18+ (required; can't be auto-installed), npm deps and Playwright Chromium (installed
+automatically, no prompt), and ffmpeg for MP4/GIF only (installed with `brew` on macOS when
+Homebrew is present, otherwise the script stops with the install command for the OS). Run
+`node scripts/setup.mjs --force` to re-check; `TRANSIT_SKIP_SETUP=1` skips it.
+
 ## Steps
 
 1. **Get the trace into a file.** A plain OTLP JSON or Datadog span JSON file needs no setup.
    For Datadog interactively, use the Datadog MCP server to fetch the trace's spans and save the raw
-   JSON to a file; headless, use `node scripts/fetch.mjs datadog-api <trace_id>`. See `references/adapters.md`.
+   JSON to a file; headless, use `node scripts/fetch.mjs datadog-api <trace_id>`.
+   For PostHog Distributed Tracing, call the PostHog MCP tool `apm-trace-get` (find ids with
+   `query-apm-spans`), follow pages until `hasMore` is false, and save the JSON; headless,
+   `node scripts/fetch.mjs posthog-api <trace_id>` (untested live). See `references/adapters.md`.
 2. **Build the interactive page:** `node engine/build.mjs <trace.json> --out out/<name>/transit.html --title "..."`.
    Open it in a browser. `?t=4.5` freezes one frame.
 3. **Share it (MP4 + GIF):** `node scripts/render.mjs <trace.json> --name <name> --title "..."` writes

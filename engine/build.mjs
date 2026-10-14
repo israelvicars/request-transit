@@ -45,6 +45,7 @@ export function build(file, opt = {}) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  await (await import('../scripts/setup.mjs')).ensureSetup({ need: [] });   // node version only; the HTML needs no deps
   const argv = process.argv.slice(2); const opt = {}; const pos = [];
   for (let i = 0; i < argv.length; i++) {
     if (!argv[i].startsWith('--')) { pos.push(argv[i]); continue; }
