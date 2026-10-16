@@ -11,6 +11,9 @@ const FAMILIES = new Map([
   ['bash', 'shell'], ['shell', 'shell'], ['exec_command', 'shell'], ['local_shell', 'shell'],
   ['webfetch', 'web'], ['websearch', 'web'], ['web_fetch', 'web'], ['web_search', 'web'],
   ['task', 'subagent'], ['agent', 'subagent'],
+  ['skill', 'skill'], ['todowrite', 'plan'], ['update_plan', 'plan'], ['notebookedit', 'edit'],
+  ['strreplace', 'edit'], ['delete', 'edit'], ['editnotebook', 'edit'],
+  ['semanticsearch', 'read'], ['readlints', 'read'],
 ]);
 const isoMs = (x) => {
   if (x == null) return null;
@@ -54,41 +57,85 @@ function claudeEvents(lines, format, warnings) {
   const calls = new Map(), results = new Map(), times = [];
   for (const line of lines) {
     if (isMarker(line)) continue;
+    if (['queue-operation', 'attachment', 'ai-title', 'last-prompt', 'summary', 'system', 'file-history-snapshot'].includes(line.type)) continue;
     const t = isoMs(line.timestamp); if (t != null) times.push(t);
     const blocks = line.message && Array.isArray(line.message.content) ? line.message.content : [];
     for (const b of blocks) {
-      if (line.type === 'assistant' && b && b.type === 'tool_use' && b.id) calls.set(String(b.id), { id: String(b.id), name: b.name, args: b.input, start: t });
-      if (line.type === 'user' && b && b.type === 'tool_result' && b.tool_use_id) results.set(String(b.tool_use_id), { end: t, error: !!b.is_error || denied(b.content), denied: denied(b.content), text: b.content });
+      if (line.type === 'assistant' && b && b.type === 'tool_use' && b.id) calls.set(String(b.id), { id: String(b.id), name: b.name, args: b.input, start: t, sidechain: !!line.isSidechain });
+      if (line.type === 'user' && b && b.type === 'tool_result' && b.tool_use_id) results.set(String(b.tool_use_id), { end: t, error: !!b.is_error, denied: !!b.is_error && denied(contentText(b.content).slice(0, 200)) });
     }
   }
   return [...calls.values()].map((c) => ({ ...c, result: results.get(c.id) })).filter((c) => c.start != null);
 }
 
+// Codex outputs: judge only the head of the output (first line / exit metadata). Scanning the whole body for
+// words like "error" or "denied" flags any call whose output merely mentions them (seen on real sessions).
+function codexStatus(p) {
+  const text = contentText(p.output);
+  const head = text.trimStart().split(/\r?\n/)[0].slice(0, 120);
+  let exit = null;
+  if (typeof p.output === 'string' && p.output.trim().startsWith('{')) { try { const o = JSON.parse(p.output); exit = o && o.metadata && o.metadata.exit_code; } catch {} }
+  const isDenied = /^(permission denied|denied|rejected|not allowed|aborted by user)/i.test(head);
+  return { error: !!p.is_error || isDenied || /^script failed\b/i.test(head) || (exit != null && Number(exit) !== 0), denied: isDenied };
+}
+
 function codexEvents(lines, warnings) {
-  const calls = new Map(), results = new Map(), times = [];
+  const calls = new Map(), results = new Map(), times = [], unknown = new Map();
+  const warnUnknown = (type) => unknown.set(type, (unknown.get(type) || 0) + 1);
   for (const line of lines) {
     if (isMarker(line)) continue;
     const t = isoMs(line.timestamp); if (t != null) times.push(t);
-    if (line.type !== 'response_item' && line.type !== 'event_msg' && line.type !== 'session_meta') { warnings.push(`ignored unknown Codex line type: ${line.type || 'missing type'}`); continue; }
+    if (['session_meta', 'turn_context', 'event_msg', 'world_state', 'token_usage_record', 'compacted'].includes(line.type)) continue;
+    if (line.type !== 'response_item') { warnUnknown(line.type || 'missing type'); continue; }
     const p = line.payload || {};
     const kind = p.type || line.type;
-    if (kind === 'function_call' || kind === 'custom_tool_call' || kind === 'local_shell_call') {
+    if (kind === 'message' || kind === 'reasoning' || kind === 'agent_message' || String(kind).startsWith('compaction') || kind === 'ghost_snapshot') continue;
+    if (kind === 'web_search_call') {
+      const id = String(p.call_id || p.id || `web-${calls.size + 1}`);
+      calls.set(id, { id, name: 'web_search', args: {}, start: t });
+    } else if (kind === 'function_call' || kind === 'custom_tool_call' || kind === 'local_shell_call') {
       const id = String(p.call_id || p.id || `${kind}-${calls.size + 1}`);
       let args = p.arguments ?? p.input ?? p.command ?? p;
+      let name = p.namespace && p.name ? `${p.namespace}.${p.name}` : p.name || (kind === 'local_shell_call' ? 'local_shell' : kind);
+      let wrapper;
+      if (kind === 'custom_tool_call' && name === 'exec') {
+        const match = typeof p.input === 'string' && p.input.match(/\btools\.(\w+)\s*\(/);
+        name = match ? match[1] : 'exec';
+        args = {};
+        wrapper = 'exec';
+      }
       if (typeof args === 'string' && p.arguments && (args.trim().startsWith('{') || args.trim().startsWith('['))) { try { args = JSON.parse(args); } catch {} }
-      calls.set(id, { id, name: p.name || (kind === 'local_shell_call' ? 'local_shell' : kind), args, start: t });
+      calls.set(id, { id, name, args, start: t, wrapper });
     } else if (kind === 'function_call_output' || kind === 'custom_tool_call_output' || kind === 'local_shell_call_output') {
-      const id = String(p.call_id || p.id || ''); if (id) results.set(id, { end: t, error: !!p.is_error || denied(p.output), denied: denied(p.output), text: p.output });
-    } else if (line.type !== 'session_meta') warnings.push(`ignored unknown Codex response item: ${kind || 'missing payload type'}`);
+      const id = String(p.call_id || p.id || ''); if (id) { const st = codexStatus(p); results.set(id, { end: t, error: st.error, denied: st.denied }); }
+    } else warnUnknown(kind || 'missing payload type');
   }
+  for (const [type, count] of unknown) warnings.push(`ignored ${count} Codex line(s) of type ${type}`);
   return [...calls.values()].map((c) => ({ ...c, result: results.get(c.id) })).filter((c) => c.start != null);
+}
+
+function cursorEvents(lines, warnings) {
+  const calls = [], turnCalls = [];
+  for (const line of lines) {
+    if (line.type === 'turn_ended') {
+      if (line.status === 'error' && turnCalls.length) turnCalls[turnCalls.length - 1].turnError = true;
+      turnCalls.length = 0;
+      continue;
+    }
+    const blocks = line.message && Array.isArray(line.message.content) ? line.message.content : [];
+    for (const b of blocks) if (line.role === 'assistant' && b && b.type === 'tool_use') {
+      const e = { id: `cursor-${calls.length + 1}`, name: b.name, args: b.input, start: calls.length * 1250, cursor: true };
+      calls.push(e); turnCalls.push(e);
+    }
+  }
+  warnings.push('Cursor transcripts have no timestamps or results: order only, durations are uniform');
+  return calls.map((e) => ({ ...e, result: e.turnError ? { end: e.start + 1000, error: true, denied: false } : { end: e.start + 1000, error: false, denied: false } }));
 }
 
 export function normalizeAgent(doc, options = {}) {
   const lines = linesOf(doc), format = options.format || (lines[0] && lines[0]._agentFormat) || 'claude-code';
-  const warnings = [], events = format === 'codex' ? codexEvents(lines, warnings) : claudeEvents(lines, format, warnings);
-  if (format === 'cursor') warnings.unshift('cursor format experimental');
-  const allTimes = lines.map((l) => isoMs(l.timestamp)).filter((x) => x != null);
+  const warnings = [], events = format === 'codex' ? codexEvents(lines, warnings) : format === 'cursor' ? cursorEvents(lines, warnings) : claudeEvents(lines, format, warnings);
+  const allTimes = format === 'cursor' ? events.flatMap((e) => [e.start, e.result.end]) : lines.map((l) => isoMs(l.timestamp)).filter((x) => x != null);
   for (const e of events) if (e.result && e.result.end != null) allTimes.push(e.result.end);
   const startMs = allTimes.length ? Math.min(...allTimes) : 0, endMs = Math.max(...allTimes, startMs);
   const rootId = `session-${format}`;
@@ -97,12 +144,15 @@ export function normalizeAgent(doc, options = {}) {
     const end = e.result && e.result.end != null ? e.result.end : e.start;
     const result = e.result;
     const status = result && (result.error || result.denied) ? 'error' : 'ok';
-    const s = { spanId: `tool-${e.id}`, parentId: rootId, service: family(e.name), name: shortName(e.name, e.args), start: Math.max(0, e.start - startMs), duration: Math.max(0, end - e.start), status, kind: 'internal', attrs: { 'agent.source': format } };
+    const attrs = { 'agent.source': format };
+    if (e.wrapper) attrs['agent.wrapper'] = e.wrapper;
+    if (e.sidechain) attrs['agent.sidechain'] = true;
+    const s = { spanId: `tool-${e.id}`, parentId: rootId, service: e.wrapper === 'exec' ? family(e.name) : family(e.name), name: shortName(e.name, e.args), start: Math.max(0, e.start - startMs), duration: Math.max(0, end - e.start), status, kind: 'internal', attrs };
     if (status === 'error') s.statusMessage = result.denied ? 'denied' : 'tool error';
     if (options.showArgs) s.attrs['agent.args'] = safeArgs(e.args);
     raw.push(s);
   }
-  const synthetic = lines.some((l) => /synthetic/i.test(String(l._comment || l.meta?.synthetic || '')));
+  const synthetic = options.synthetic === true || lines.some((l) => /synthetic/i.test(String(l._comment || l.meta?.synthetic || '')));
   return validate({ traceId: `agent-${format}`, meta: { format, source: `agent.${format}`, synthetic, startUnixNs: String(Math.round(startMs * 1e6)), warnings }, spans: raw });
 }
 

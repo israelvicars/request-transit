@@ -28,3 +28,18 @@ Not verified: the Cursor transcript format. No Cursor agent transcripts exist on
 
 ## Next: M7 (not started)
 Update .claude-plugin manifests and keywords for 3 skills, write a suite README with per-skill GIFs, symlinks for ci-transit and agent-transit (~/.claude/skills, ~/.agents/skills -> skills/<name>), then live tests in Claude Code, Codex, and Cursor (Codex needs sandbox permission for Chromium). Blocked on user input: suite name (leaning `subway`) for the README/manifests, and permission to run agent-transit against one real local session (privacy).
+
+## M5b agent readers validated on real sessions: done
+User approved one real Claude Code session and one real Codex session. Both were parsed and rendered outside the repo (/tmp, deleted afterwards). Only counts and tool names were inspected; no log content was copied anywhere.
+- Claude Code (an agent-testing session, 9 tool calls): 9/9 calls became spans, families skill/read/shell, 0 errors, 0 warnings, built twice byte-identical, MP4 rendered.
+- Codex (the M5 codex exec session, 19 calls): 19/19 spans, families shell 11 / edit 8, 1 error (matches the session's single "Script failed"), 0 warnings, byte-identical, MP4 rendered. Span attrs are only agent.source/agent.wrapper.
+- Cursor: no transcripts on this laptop. The reader was rewritten to the publicly documented format (no timestamps, ids, or results; ordinal timeline; turn_ended errors) and checked only against a synthetic sample.
+Bugs fixed (Codex 72,901 tokens, plus hand fixes):
+1. Codex 0.14x wraps tool calls in custom_tool_call "exec" with a JS snippet, so every call was landing in family "other". The inner tool is now inferred from `tools.<name>(` and the input is never stored.
+2. Codex: ~70 noisy "ignored unknown" warnings per session. Known non-tool lines are now ignored silently; unknown types get one aggregated warning per type.
+3. (hand fix) Error/denial detection scanned whole outputs for words like "denied" or "error", giving 3 false errors on the real Codex session. Codex now uses the output head ("Script failed", explicit denial prefix, metadata.exit_code); Claude now uses is_error only.
+4. Cursor reader rewritten to the real format; find-session now finds Cursor transcripts and matches Codex sessions by session_meta.cwd (first line only).
+5. Claude: Skill/TodoWrite/NotebookEdit families, silent ignore of non-message line types, isSidechain attr.
+Gates: npm test, verify (MP4 identical), verify:ci, verify:agent, test:ui all pass; no SECRET_CANARY in out/.
+Sources: https://docs.rs/crate/cursordump/latest/source/docs/knowledge-base.md , https://forum.cursor.com/t/richer-agent-transcripts-lifecycle-data-for-observability-langfuse-stop-hooks/166592 , https://forum.cursor.com/t/accessing-the-full-agent-transcript-in-cursor/157311 , https://www.bough.run/docs/format/codex , https://github.com/openai/codex/blob/main/codex-rs/app-server-protocol/schema/typescript/ResponseItem.ts , https://claude-dev.tools/docs/jsonl-format , https://github.com/glebmish/claude-code-replay/blob/main/docs/log-format.md
+Next: M7 still blocked on the suite name.

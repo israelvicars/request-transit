@@ -1,11 +1,11 @@
 {"_agentFormat":"codex","_comment":"SYNTHETIC hand-built Codex rollout JSONL; SECRET_CANARY_PROMPT_7731 SECRET_CANARY_OUTPUT_7731 SECRET_CANARY_COMMAND_7731"}
 {"timestamp":"2026-10-16T12:00:00.000Z","type":"session_meta","payload":{"id":"synthetic-session"}}
-{"timestamp":"2026-10-16T12:00:01.000Z","type":"response_item","payload":{"type":"function_call","call_id":"cx-1","name":"Read","arguments":"{\"file_path\":\"src/module-0.mjs\"}"}}
-{"timestamp":"2026-10-16T12:00:02.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"cx-1","output":"output SECRET_CANARY_OUTPUT_7731","is_error":false}}
-{"timestamp":"2026-10-16T12:00:02.000Z","type":"response_item","payload":{"type":"function_call","call_id":"cx-2","name":"Glob","arguments":"{\"pattern\":\"src/**/*.mjs\"}"}}
-{"timestamp":"2026-10-16T12:00:03.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"cx-2","output":"output SECRET_CANARY_OUTPUT_7731","is_error":false}}
-{"timestamp":"2026-10-16T12:00:03.000Z","type":"response_item","payload":{"type":"function_call","call_id":"cx-3","name":"Grep","arguments":"{\"pattern\":\"normalize\",\"path\":\"src\"}"}}
-{"timestamp":"2026-10-16T12:00:04.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"cx-3","output":"output SECRET_CANARY_OUTPUT_7731","is_error":false}}
+{"timestamp":"2026-10-16T12:00:01.000Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"cx-1","name":"exec","input":"const x = tools.exec_command({ command: 'SECRET_CANARY_COMMAND_7731' });"}}
+{"timestamp":"2026-10-16T12:00:02.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"cx-1","output":[{"type":"input_text","text":"SECRET_CANARY_OUTPUT_7731"}]}}
+{"timestamp":"2026-10-16T12:00:02.000Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"cx-2","name":"exec","input":"tools.apply_patch({ patch: 'SECRET_CANARY_FILE_CONTENT_7731' });"}}
+{"timestamp":"2026-10-16T12:00:03.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"cx-2","output":[{"type":"input_text","text":"SECRET_CANARY_OUTPUT_7731"}]}}
+{"timestamp":"2026-10-16T12:00:03.000Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"cx-3","name":"exec","input":"tools.update_plan({ plan: 'SECRET_CANARY_PROMPT_7731' });"}}
+{"timestamp":"2026-10-16T12:00:04.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"cx-3","output":[{"type":"input_text","text":"SECRET_CANARY_OUTPUT_7731"}]}}
 {"timestamp":"2026-10-16T12:00:04.000Z","type":"response_item","payload":{"type":"function_call","call_id":"cx-4","name":"Edit","arguments":"{\"file_path\":\"src/module-3.mjs\",\"content\":\"SECRET_CANARY_FILE_CONTENT_7731\"}"}}
 {"timestamp":"2026-10-16T12:00:05.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"cx-4","output":"output SECRET_CANARY_OUTPUT_7731","is_error":false}}
 {"timestamp":"2026-10-16T12:00:05.000Z","type":"response_item","payload":{"type":"function_call","call_id":"cx-5","name":"Write","arguments":"{\"file_path\":\"src/module-4.mjs\",\"content\":\"SECRET_CANARY_FILE_CONTENT_7731\"}"}}
@@ -37,3 +37,4 @@
 {"timestamp":"2026-10-16T12:00:18.000Z","type":"response_item","payload":{"type":"function_call","call_id":"cx-18","name":"Write","arguments":"{\"file_path\":\"src/module-17.mjs\",\"content\":\"SECRET_CANARY_FILE_CONTENT_7731\"}"}}
 {"timestamp":"2026-10-16T12:00:19.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"cx-18","output":"output SECRET_CANARY_OUTPUT_7731","is_error":false}}
 {"timestamp":"2026-10-16T12:00:25.000Z","type":"mystery_future_line","payload":{}}
+{"timestamp":"2026-10-16T12:00:26.000Z","type":"mystery_future_line","payload":{}}

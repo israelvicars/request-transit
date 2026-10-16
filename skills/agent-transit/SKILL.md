@@ -20,7 +20,7 @@ A local subway map for one AI coding-agent session: tool families are lines and 
 3. Share it with the bundled renderer: `node <skill>/../../core/render.mjs <session.jsonl> --format claude-code --name agent`.
 4. Check it with the bundled verifier: `node <skill>/../../core/verify.mjs <session.jsonl> --format claude-code --name agent`.
 
-Use `--format codex` or `--format cursor` for those sources. Cursor parsing is experimental and emits a warning. Keep session files local and never upload them. Synthetic fixtures are provided in `samples/`; no real home-directory logs belong in this repository.
+Use `--format codex` or `--format cursor` for those sources. Cursor transcripts provide order only, with uniform synthetic durations because they have no timestamps or results. Keep session files local and never upload them. Synthetic fixtures are provided in `samples/`; no real home-directory logs belong in this repository.
 
 ## Rules
 
