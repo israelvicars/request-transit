@@ -1,6 +1,6 @@
 ---
 name: ci-transit
-description: Use when the user wants to visualize a GitHub Actions run as a subway map. Draws jobs as lines, steps as stations, and failed, cancelled or slow steps as service alerts.
+description: A transit map for your CI runs. Use when the user wants to visualize a GitHub Actions run as a subway map. Draws jobs as lines, steps as stations, and failed, cancelled or slow steps as service alerts.
 ---
 
 > Installed as a Claude Code plugin: `CLAUDE_PLUGIN_ROOT` is the repo root, which holds

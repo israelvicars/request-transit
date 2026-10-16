@@ -1,6 +1,6 @@
 ---
 name: request-transit
-description: Use when the user wants to visualize, animate or share how a request moved through services, from a distributed trace (OpenTelemetry/OTLP, Datadog, PostHog, AWS X-Ray, Grafana Tempo). Draws the trace as an animated subway map (services are lines, hops are stations, slow and failed calls are service alerts) and can render a frame-exact MP4/GIF.
+description: A public transit map for your requests. Use when the user wants to visualize, animate or share how a request moved through services, from a distributed trace (OpenTelemetry/OTLP, Datadog, PostHog, AWS X-Ray, Grafana Tempo). Draws the trace as an animated subway map (services are lines, hops are stations, slow and failed calls are service alerts) and can render a frame-exact MP4/GIF.
 ---
 
 > Installed as a Claude Code plugin: `CLAUDE_PLUGIN_ROOT` is the repo root, which holds

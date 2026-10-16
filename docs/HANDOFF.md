@@ -50,3 +50,13 @@ Rules: suite "Transit", skills `<thing>-transit`, alerts DELAY / SERVICE ALERT o
 - vocab: ci and agent alerts are now DELAY / SERVICE ALERT (test-gh updated). package.json description lists all 5 sources. Plugin SKILL.md copies regenerated.
 - Gates: npm test, verify (MP4 identical to baseline), verify:ci, verify:agent, test:ui all pass.
 - Note: the old design-system.md is still in public main history on GitHub; untracking only affects future commits.
+
+## Repo rename + M7 suite packaging: done
+- GitHub repo renamed israelvicars/request-transit -> israelvicars/transit (user approved); the laptop's origin remote points to the new URL. main is unchanged and suite is not pushed. GitHub description/topics are left alone until launch.
+- Codex (54,324 tokens) rewrote README as the suite README (🚇 Transit, "Subway maps of your data.", 3 skill sections, install, privacy, MTA disclaimer last line), manifests (marketplace/plugin name "transit"), package name "transit", and added `npm run check` (all gates). Hand fixes: restored HANDOFF.md (Codex had dropped the branding section), and frontmatter descriptions = literal line + the original "Use when…" trigger text (Codex had cut the triggers, which agents rely on to pick skills).
+- Symlinks added: ~/.claude/skills and ~/.agents/skills -> skills/ci-transit and skills/agent-transit.
+- Smoke tests, run in /tmp on sample data:
+  - Codex (`--sandbox workspace-write --skip-git-repo-check`, 13,445 tokens) found all 3 skills and built all 3 pages OK.
+  - Claude Code (`claude -p`, $0.50, 27 turns) built all 3 pages and rendered the ci-transit MP4/GIF OK.
+- `npx skills add ~/Projects/transit --list` lists all 3, and `--skill ci-transit` selects one. BUT npx skills COPIES only the skill folder, so `core/` and the shared request-transit normalize module are missing and the installed skill can't run. This conflicts with the single-shared-core decision. NEEDS USER DECISION: vendor core into generated self-contained folders (original plan) or document plugin/clone installs only.
+- Gates: `npm run check` passes; MP4 identical to baseline.

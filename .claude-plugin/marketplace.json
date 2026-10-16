@@ -1,12 +1,12 @@
 {
-  "name": "request-transit",
-  "description": "request-transit: a public transit map for your requests",
+  "name": "transit",
+  "description": "Transit: Subway maps of your data.",
   "owner": { "name": "Israel Vicars", "url": "https://github.com/israelvicars" },
   "plugins": [
     {
-      "name": "request-transit",
+      "name": "transit",
       "source": "./",
-      "description": "Animate one distributed trace as a subway map (interactive page, MP4, GIF). Local only."
+      "description": "Transit: Subway maps of your data."
     }
   ]
 }

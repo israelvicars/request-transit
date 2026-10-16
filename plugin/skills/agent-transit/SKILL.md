@@ -1,6 +1,6 @@
 ---
 name: agent-transit
-description: Use when the user wants to visualize one Claude Code, Codex CLI, or Cursor coding-agent session as a subway map of tool calls.
+description: A transit map for your coding-agent sessions. Use when the user wants to visualize one Claude Code, Codex CLI, or Cursor coding-agent session as a subway map of tool calls.
 ---
 
 > Installed as a Claude Code plugin: `CLAUDE_PLUGIN_ROOT` is the repo root, which holds

@@ -39,17 +39,10 @@ scripts/                 build-plugin-skills.mjs, test runner
 ```
 
 Exposure:
-- `scripts/build-plugin-skills.mjs` (generalized from today's script) assembles `plugin/skills/<name>/`: SKILL.md, the skill's files, and a vendored copy of `core/`. Each folder is then self-contained, which matters because `npx skills add` and Composio copy only the skill folder. `--check` fails in `npm test` when a copy is stale.
-- `npx skills add <repo>` discovers all three under `plugin/skills/`. Verify this works, and also check `--skill <name>` for picking one.
-- Local symlinks: `~/.claude/skills/<name>` and `~/.agents/skills/<name>` point to `plugin/skills/<name>`. Repoint the existing request-transit links.
+- `scripts/build-plugin-skill.mjs` assembles `plugin/skills/<name>/SKILL.md` for all three skills. `--check` fails in `npm test` when a copy is stale.
+- `npx skills add <repo>` discovers all three under `plugin/skills/`; `--skill <name>` selects one.
+- Local symlinks: `~/.claude/skills/<name>` and `~/.agents/skills/<name>` point to the matching skill folder.
 - Cost: core is about 1.2k lines plus about 120 KB of fonts, duplicated three times in the generated folders. That's acceptable. The alternative, a shared npm package, is on hold.
-
-## Repo name options (do not rename yet)
-1. `transit-lines`: the suite "lines" metaphor, with each skill as a line
-2. `devtransit`: short and clear
-3. `transit-map` (or `transit-skills`): plain and searchable
-
-GitHub redirects the old URL after a rename. Keep `request-transit` as the skill name either way.
 
 ## Milestones (one `codex exec` each, on branch `suite`)
 
@@ -76,8 +69,8 @@ Accept: tests for both formats pass, a redaction test confirms no prompt or outp
 **M6 agent-transit skill.** Add SKILL.md (how to find the latest session file for a project), scripts, npm `render:agent` / `verify:agent`, and add it to the plugin build.
 Accept: verify passes and `contact.png` has been reviewed.
 
-**M7 Suite packaging and docs.** Update `.claude-plugin` manifests (three skills, keywords), add a suite README section per skill with GIFs, and add a single `npm test` that covers all skills. Repoint the symlinks.
-Accept: `claude` and `codex` each list and run all three skills locally (repeat the agent-testing doc checks). Confirm the local `npx skills add ./` sees 3 skills.
+**M7 Suite packaging and docs.** Brand the suite as Transit, update `.claude-plugin` manifests and keywords, add a suite README section per skill, and add a sequential `npm run check` gate over all skills and UI/network checks. Keep each skill's literal description stable and regenerate plugin copies.
+Accept: the manifests name `transit`, `npx skills add` can select all three or one with `--skill`, and `npm test` passes.
 
 **M8 (later) query-transit.**
 
@@ -94,4 +87,4 @@ Accept: `claude` and `codex` each list and run all three skills locally (repeat 
 - Launch is held until the whole suite is ready.
 - All three skills target Codex, Cursor and Claude Code. agent-transit parses all three session log formats (Cursor's format still needs research). Every skill is tested in all three agents (M7).
 - **Single shared `core/` folder for now** (no per-skill copies). Skill scripts import `../../core/...`. This means only whole-repo installs (plugin, `npx skills add` of the repo, symlinks) work; single-folder copies (Composio) don't, which is the trade-off accepted. The plugin builder only generates the SKILL.md wrappers. Revisit vendoring before any directory submission.
-- Name undecided, leaning `subway`. No rename yet.
+- Suite name is `Transit`; skill names remain `request-transit`, `ci-transit`, and `agent-transit`.
