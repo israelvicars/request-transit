@@ -59,6 +59,8 @@ function expected(name) {
 
   addTree(files, outRoot, join(ROOT, 'core'), core, (file) => !/^test-.*\.mjs$/.test(file.split('/').pop()));
   files.set('SKILL.md', Buffer.from(skillText(name)));
+  const readme = join(source, 'README.md');
+  if (existsSync(readme)) addFile(files, outRoot, readme, join(outRoot, 'README.md'));
   files.set('package.json', Buffer.from(JSON.stringify({
     name, private: true, type: 'module', dependencies: { 'playwright-core': packageVersion }
   }, null, 2) + '\n'));
