@@ -21,11 +21,11 @@
   #wrap { display: flex; align-items: flex-start; }
   #main { width: 1200px; flex: none; }
   #panel { width: 400px; flex: none; box-sizing: border-box; border-left: 2px solid #111; font-size: 13px; }
-  /* interactive layout: page never scrolls; map scales to fit; hop table and panel body scroll on their own */
+  /* interactive layout: page never scrolls; map scales to fit above a reserved 180px list area; hop table and panel body scroll on their own. #main needs an explicit height because #wrap uses align-items: flex-start (render mode), otherwise the list grows instead of scrolling. */
   html:not(.render), html:not(.render) body { height: 100%; overflow: hidden; }
   html:not(.render) #wrap { display: flex; height: 100vh; }
-  html:not(.render) #main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-  html:not(.render) #stage { flex: none; width: min(100%, calc((100vh - 56px) * 4 / 3)); height: auto; aspect-ratio: 1200 / 900; }
+  html:not(.render) #main { flex: 1; min-width: 0; height: 100vh; min-height: 0; align-self: stretch; display: flex; flex-direction: column; overflow: hidden; }
+  html:not(.render) #stage { flex: none; width: min(100%, calc((100vh - 56px - 180px) * 4 / 3)); height: auto; aspect-ratio: 1200 / 900; }
   html:not(.render) #controls { width: 100%; flex: none; }
   html:not(.render) #hops { width: 100%; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   #panel { display: flex; flex-direction: column; overflow: hidden; height: 100vh; }

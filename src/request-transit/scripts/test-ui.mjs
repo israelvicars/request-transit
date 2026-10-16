@@ -43,16 +43,17 @@ for (const [k, v] of [['1', 0.5], ['3', 2], ['2', 1]]) { await page.keyboard.pre
 await page.click('#speed button[data-s="2"]'); ok((await st()).speed === 2, 'speed button 2x');
 await page.keyboard.press('?'); ok((await st()).help && await page.isVisible('#help'), '? opens help');
 await page.keyboard.press('Escape'); ok(!(await st()).help, 'Esc closes help');
-// click a station (canvas coords == page coords: canvas at 0,0, 1200 wide)
+// click a station (canvas is CSS-scaled to fit; map canvas coords to page coords)
 const box = await page.locator('#stage').boundingBox();
+const at = (q) => [box.x + q.x * box.width / 1200, box.y + q.y * box.height / 900];
 const target = hops[Math.min(3, hops.length - 1)];
 const stn = (await page.evaluate(() => window.TRANSIT_UI.stations)).find((n) => n.id === target.to);
 await page.keyboard.press('Home');
-await page.mouse.click(box.x + stn.x, box.y + stn.y);
+await page.mouse.click(...at(stn));
 s = await st(); ok(s.selected && hops[s.hop] && hops[s.hop].to === target.to, `click station ${target.to} selects a hop into it`);
 // click a line segment
 const ep = await page.evaluate(() => window.TRANSIT_UI.edgePoint(1));
-await page.mouse.click(box.x + ep.x, box.y + ep.y); s = await st();
+await page.mouse.click(...at(ep)); s = await st();
 ok(s.hop >= 0 && hops[s.hop].from === hops[1].from && hops[s.hop].to === hops[1].to, 'click line selects a hop on that edge');
 // click a train: go to mid-flight of hop 2
 const tr = await page.evaluate(() => { const h = window.TRANSIT_UI.hops[2]; const t = h.t + 3 / 24; return t; });
@@ -61,7 +62,7 @@ await page.locator('#scrub').evaluate((el, t) => { el.value = t; el.dispatchEven
 const pos = await page.evaluate((t) => window.VIZ.trainsAt(t), tr);
 ok(pos.length > 0, `${pos.length} train(s) on screen at t=${tr.toFixed(2)}`);
 const tp = (await page.evaluate(() => window.TRANSIT_UI.trainPoints()))[0];
-await page.mouse.click(box.x + tp.x, box.y + tp.y); s = await st();
+await page.mouse.click(...at(tp)); s = await st();
 ok(s.selected === tp.spanId, 'click train selects its hop');
 await page.keyboard.press('Escape'); await page.keyboard.press('Space'); await page.waitForTimeout(400); await page.keyboard.press('Space');
 s = await st(); ok(!s.playing && s.selected, 'pause auto-selects the hop in progress');
@@ -173,6 +174,17 @@ await p3.addInitScript(() => { window.__RENDER_MODE = true; });
 await p3.goto(url + '#span=' + encodeURIComponent(hops[2].spanId));
 ok(!(await p3.isVisible('#panel')) && !(await p3.isVisible('#controls')), 'render mode hides panel and controls');
 ok((await p3.evaluate(() => window.TRANSIT_UI.state())).selected === null, 'render mode ignores #span');
+// hop list scrolls on its own when it overflows (wheel/trackpad), at laptop and desktop sizes
+for (const [w, hgt] of [[1280, 800], [1920, 1080]]) {
+  const pl = await browser.newPage({ viewport: { width: w, height: hgt } }); await pl.goto(url);
+  const box = await pl.evaluate(() => { const e = document.getElementById('hops'); const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: e.clientHeight, sh: e.scrollHeight }; });
+  ok(box.h >= 120 && box.bottom <= hgt + 1, `hop list visible at ${w}x${hgt} (${box.h}px tall, inside viewport)`);
+  ok(box.sh > box.h, `hop list overflows at ${w}x${hgt} (${box.sh} > ${box.h})`);
+  await pl.mouse.move(w / 3, box.top + 30); await pl.mouse.wheel(0, 240); await pl.waitForTimeout(150);
+  const st = await pl.evaluate(() => document.getElementById('hops').scrollTop);
+  ok(st > 0, `hop list scrolls with the wheel at ${w}x${hgt} (scrollTop ${st})`);
+  await pl.close();
+}
 await browser.close();
 console.log(fails ? `${fails} failure(s)` : 'all UI tests pass');
 process.exit(fails ? 1 : 0);
