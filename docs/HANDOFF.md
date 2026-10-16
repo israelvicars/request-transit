@@ -93,3 +93,11 @@ New src/ci-transit/scripts/test-ui-ci.mjs, appended to test:ui: the step list is
 Hand fixes: (1) test-ui-ci took process.argv[0] (node) as the page path; it now uses slice(2). (2) The hop list was sorted by start time, so the jobs interleaved; it now groups by the job's first step start, then step number.
 Gates: npm run check passes; MP4 identical; the 5 request out/ui PNGs are byte-identical. docs/ci.gif regenerated (459,220 B).
 Open: only the latest-finishing need is drawn, so build's other needs (lint, test (node 20)) have no transfer edge (multi-parent needs a model change). The strip's labelled markers are still per job; the step ticks sit underneath them.
+
+## Spike: multi-parent needs transfers (branch spike/multi-needs, 93c5c11, NOT pushed)
+Codex used 80,416 tokens. The layout parent stays the latest-finishing need. normalize-gh writes the other needed jobs' last stations to ci.needs.from, and under CI_STEPS the template adds extra connector calls (ciExtra) to the dependent job's station. These are left out of layering, parentsOf, VIZ.calls and trainsAt, and are exposed as VIZ.ciExtraTransfers.
+Hand fixes: (1) the extra calls reused the job's spanId, so verify:ci timing was 2 off; fixed by keeping them out of VIZ.calls/trainsAt. (2) Codex targeted the job's first step, which turned Bundle application into the transfer pill; it now targets the job station, so build is the pill. Tests updated to match.
+Gates: npm run check passes; MP4 identical; request UI PNGs identical. Diffstat (src/core, excluding generated skills/): 4 files, +37/-8.
+Images: out/spike/before.png (main) and out/spike/after.png.
+Known rough edges: the extra trains appear in the THIS TRIP strip as extra E markers at the needed jobs' end times (240 s, 600 s), and a train runs from a finished need to build even before build starts.
+Recommendation: merge after one small follow-up (hide ciExtra calls from the strip markers); the change is small, gated to CI, and gate-clean.
