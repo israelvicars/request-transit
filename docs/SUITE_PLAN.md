@@ -90,8 +90,8 @@ Accept: `claude` and `codex` each list and run all three skills locally (repeat 
 - **Install weight.** Still only `playwright-core`, with no new deps. `gh` is optional (users can pass a JSON file instead).
 - **Scope.** No employer code, synthetic or public data only, no telemetry, nothing pushed or published without approval.
 
-## Open decisions
-1. Suite name / repo rename (options above), and whether to rename before launch.
-2. Launch request-transit next week as planned, or hold for the suite?
-3. Vendored core per skill (recommended) vs one shared folder that only works with whole-repo installs.
-4. agent-transit scope for v1: Claude Code plus Codex, or start with one?
+## Decisions (2026-10-16)
+- Launch is held until the whole suite is ready.
+- All three skills target Codex, Cursor and Claude Code. agent-transit parses all three session log formats (Cursor's format still needs research). Every skill is tested in all three agents (M7).
+- **Single shared `core/` folder for now** (no per-skill copies). Skill scripts import `../../core/...`. This means only whole-repo installs (plugin, `npx skills add` of the repo, symlinks) work; single-folder copies (Composio) don't, which is the trade-off accepted. The plugin builder only generates the SKILL.md wrappers. Revisit vendoring before any directory submission.
+- Name undecided, leaning `subway`. No rename yet.
