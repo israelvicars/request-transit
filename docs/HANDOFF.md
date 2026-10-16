@@ -106,3 +106,6 @@ Recommendation: merge after one small follow-up (hide ciExtra calls from the str
 spike/multi-needs was fast-forwarded into suite and the local branch deleted. Hand fixes, no Codex (0 tokens): trainFor returns null for ciExtra connector calls, so no trains run on them; the strip's hops list leaves ciExtra out, so there are no extra markers; and an extra connector's start is max(need end, target start), so its line is only revealed once the target job starts. The layout parent's train is unchanged.
 Root README: request/ci/agent sections link to skills/<name>/README.md on GitHub (blob/main); ci and agent sections embed docs/ci.gif and docs/agent.gif via the raw main URL (width 700). request-transit points to the hero GIF instead of repeating it.
 Gates: npm run check passes; MP4 identical; request UI PNGs identical. docs/ci.gif regenerated (463,322 B).
+
+## Footer dependency count: done (8278882)
+Hand fix, 0 Codex tokens. drawFooter counts calls without ciExtra connectors, so the ci sample footer reads 12 dependencies (it was 14). Non-ci pages have no connectors, so their count is unchanged. npm run check passes; MP4 identical; request UI PNGs identical. docs/ci.gif regenerated (463,309 B). Then main was fast-forwarded to suite and pushed (user approved).
