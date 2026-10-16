@@ -246,7 +246,7 @@ if (CI_STEPS) {
     for (const fromId of fromIds) {
       const source = byId.get(fromId);
       if (!source || source.service === target.service) continue;
-      calls.push({ from: source.service, to: target.service, start: source.end, end: Math.max(source.end, target.end), arrive: target.start, leave: target.end, span: job, callee: target, oneWay: false, ciExtra: true });
+      calls.push({ from: source.service, to: target.service, start: Math.max(source.end, target.start), end: Math.max(source.end, target.end), arrive: target.start, leave: target.end, span: job, callee: target, oneWay: false, ciExtra: true });
     }
   }
 }
@@ -391,7 +391,7 @@ function strokePath(path, upto) {
 const edgeOf = (c) => edges.get(c.from + '>' + c.to);
 // train state of one call at trace time tm
 function trainFor(c, tm) {
-  if (c.ghost) return null;
+  if (c.ghost || c.ciExtra) return null;
   const e = edgeOf(c);
   if (tm >= c.start && tm < c.start + c.outT) return { c, e, p: easeInOut((tm - c.start) / c.outT), back: false };
   if (!c.oneWay && c.retT > 0 && tm >= c.end - c.retT && tm < c.end) return { c, e, p: 1 - easeInOut((tm - (c.end - c.retT)) / c.retT), back: true };
@@ -556,7 +556,7 @@ function drawLegend() {
   }
 }
 // route strip map: the trip as one line in time order, like the strip above a subway car door
-const hops = calls.slice().sort((a, b) => a.start - b.start || (a.to < b.to ? -1 : 1));
+const hops = calls.filter((c) => !c.ciExtra).sort((a, b) => a.start - b.start || (a.to < b.to ? -1 : 1));
 const SX0 = 70, SX1 = 1130, SY = 772;
 const sx = (ms) => SX0 + (SX1 - SX0) * clamp(ms, 0, TOTAL) / TOTAL;
 function drawStrip(tm) {
