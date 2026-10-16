@@ -165,3 +165,5 @@ npm run verify           # also verify:dd, verify:posthog, verify:xray, verify:t
 ## License
 
 MIT
+
+Not affiliated with or endorsed by the MTA.
