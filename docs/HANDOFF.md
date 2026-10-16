@@ -71,3 +71,6 @@ Root cause: in interactive mode #wrap keeps `align-items: flex-start` (needed fo
 Fix (core/transit.template.html CSS only, interactive mode): #main gets height:100vh, min-height:0, align-self:stretch; the map is sized to (100vh - 56px - 180px) so a ~187px list area is always visible and scrolls on its own. Render mode is untouched, so the MP4 hash is identical.
 Tests: test-ui adds visible/overflow/wheel-scroll checks at 1280x800 and 1920x1080 (they fail on the old template). The click tests now map canvas coords through the CSS scale; they had assumed an unscaled 1200px canvas, which no longer holds at 1600x1000.
 Note: the ci-transit list shows jobs (hops) only, not steps; that's a known follow-up.
+
+## Published (user approved)
+Smoke tests re-run: Codex 32,552 tokens, Claude Code $0.20; all 3 skills built their HTML pages. suite was fast-forwarded into main and main pushed to israelvicars/transit at 2b73a42. GitHub description and topics applied. design-system.md is not in main. Desktop examples refreshed. This note is a local commit on suite only (unpushed).
