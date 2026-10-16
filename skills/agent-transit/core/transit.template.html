@@ -587,17 +587,18 @@ function drawStrip(tm) {
   ctx.font = font(400, 11); ctx.fillStyle = C.ink2; ctx.textBaseline = 'alphabetic';
   for (let i = 0; i <= 4; i++) { const ms = TOTAL * i / 4; ctx.textAlign = i === 0 ? 'left' : i === 4 ? 'right' : 'center'; ctx.fillText(fmtMs(ms), sx(ms), SY + 46); }
 }
-const infraHops = calls.filter((c) => nodes.get(c.to).inferred).length;
+const footCalls = calls.filter((c) => !c.ciExtra);   // CI needs connectors are not dependencies of their own
+const infraHops = footCalls.filter((c) => nodes.get(c.to).inferred).length;
 function drawFooter() {
   ctx.font = font(400, 12); ctx.fillStyle = C.ink2; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   const syn = D.meta && D.meta.synthetic ? `${V.synthetic}  ·  ` : '';
   const CTX = window.CONTRACTS;
-  let tail = `${calls.length - infraHops} ${V.unmatched}: ${V.noContractIndex}`;
+  let tail = `${footCalls.length - infraHops} ${V.unmatched}: ${V.noContractIndex}`;
   if (CTX) {
-    const st = calls.filter((c) => !nodes.get(c.to).inferred).map((c) => (CTX.bySpan[c.callee.spanId] || CTX.bySpan[c.span.spanId] || {}).state);
+    const st = footCalls.filter((c) => !nodes.get(c.to).inferred).map((c) => (CTX.bySpan[c.callee.spanId] || CTX.bySpan[c.span.spanId] || {}).state);
     tail = `${st.filter((x) => x === 'matched' || x === 'fallback').length} ${V.matched} to ${V.contracts}, ${st.filter((x) => x !== 'matched' && x !== 'fallback').length} ${V.unmatched}`;
   }
-  ctx.fillText(`${syn}${spans.length} spans  ·  ${calls.length} ${V.hopNounPlural} (${infraHops} ${V.infrastructure}, ${tail})  ·  ${V.renderedLocally}`, 40, 872);
+  ctx.fillText(`${syn}${spans.length} spans  ·  ${footCalls.length} ${V.hopNounPlural} (${infraHops} ${V.infrastructure}, ${tail})  ·  ${V.renderedLocally}`, 40, 872);
 }
 function renderAt(t) {
   const tm = traceMsAt(t);
