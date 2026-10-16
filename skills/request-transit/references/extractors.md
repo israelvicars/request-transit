@@ -1,6 +1,6 @@
 # Contract layer (optional)
 
-The contract layer is opt-in. Nothing reads source code until someone runs `node scripts/transit.mjs index`, and a page shows contracts only when it is built with `--contracts`. The skill asks the user before indexing.
+The contract layer is opt-in. Nothing reads source code until someone runs `node <skill>/scripts/transit.mjs index`, and a page shows contracts only when it is built with `--contracts`. The skill asks the user before indexing.
 
 ## Pipeline
 
@@ -24,7 +24,7 @@ The contract layer is opt-in. Nothing reads source code until someone runs `node
 
 3. **Entry.** Each entry records `service`, `kind` (http/rpc/topic), method+path / rpc / topic+role, `source` (file:line of the route), `extractor` (e.g. `express+zod+ts-types`) and `confidence`. Each side also records its schema, its own source file:line, its extractor kind, whether it came from a shared package, and notes. Missing sides are listed in `gaps`.
 
-4. **Match** (`contracts/match.mjs`, run by `engine/build.mjs --contracts`):
+4. **Match** (`contracts/match.mjs`, run by `<skill>/../../core/build.mjs --contracts`):
    - Server spans match on service + `rpc.service/rpc.method` (package prefix dropped) or service + method + path.
    - Paths are normalized: `:id`, `{id}`, numbers, uuids and long hex become `{}`. `/api/vN` and the configured prefixes are optional.
    - Consumers match the topic's consumer entry. If there is none, they fall back to the producer's shape at medium confidence.

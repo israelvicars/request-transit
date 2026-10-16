@@ -22,13 +22,13 @@ Every input becomes one normalized shape (`adapters/normalize.mjs`):
 | Grafana Tempo | v1 `{batches:[…]}`; v2 `{trace:{resourceSpans or batches}, status}` | OTLP inside, read by the OTLP mapper: base64 (protobuf-JSON) or hex ids, `SPAN_KIND_*` / `STATUS_CODE_*` strings or numbers, `scopeSpans` or legacy `instrumentationLibrarySpans`. v2 `status: PARTIAL` (size limit or `q` filter) adds a warning. Protobuf responses (`Accept: application/protobuf`) and the `application/vnd.grafana.llm` format are not read: fetch JSON |
 | internal | already normalized | validated only |
 
-Full Datadog field mapping is in the comments of `adapters/normalize.mjs`; tests in `scripts/test-normalize.mjs`.
+Full Datadog field mapping is in the comments of `<skill>/adapters/normalize.mjs`; tests in `<skill>/scripts/test-normalize.mjs`.
 
 ## Backends
 
 | Backend | When | How | Status |
 | --- | --- | --- | --- |
-| plain file | default, README demo, zero auth | `node scripts/fetch.mjs file trace.json` (or pass the file straight to build) | working |
+| plain file | default, README demo, zero auth | `node <skill>/scripts/fetch.mjs file trace.json` (or pass the file straight to build) | working |
 | Datadog MCP | interactive agent use; access follows the user's own permissions | agent calls the MCP server's trace/span tools, saves the JSON to a file, then uses the file backend. Results pass through model context: costs tokens on big traces | documented, milestone 4 |
 | Datadog API keys | headless / CI | `DD_API_KEY`, `DD_APP_KEY` (apm_read), `DD_SITE` in env; `node scripts/fetch.mjs datadog-api <id>` | code from prototype, untested |
 | PostHog MCP | interactive; OAuth via `https://mcp.posthog.com/mcp` | agent calls `apm-trace-get` (find ids with `query-apm-spans`), follows pages until `hasMore` is false, saves JSON, then the file backend | documented; shape from docs, synthetic sample only |
@@ -42,5 +42,5 @@ Full Datadog field mapping is in the comments of `adapters/normalize.mjs`; tests
 ## Privacy
 
 Traces are processed locally; `transit.html` has no network calls (fonts and data are inlined).
-`engine/build.mjs` drops attribute keys matching a default PII pattern before rendering
+`<skill>/../../core/build.mjs` drops attribute keys matching a default PII pattern before rendering
 (`DEFAULT_REDACT`), plus any keys passed with `--redact`. Disable the default with `--no-default-redact`.

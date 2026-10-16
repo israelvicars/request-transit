@@ -1,7 +1,7 @@
 # Config: transit.config.json (optional; only the contract layer reads it)
 
 Story 2a (the map and video) needs no config. The contract layer reads this file only when you run
-`node scripts/transit.mjs index --config <file>`. Paths are relative to the config file.
+`node <skill>/scripts/transit.mjs index --config <file>`. Paths are relative to the config file.
 
 ```json
 {
@@ -23,4 +23,4 @@ Story 2a (the map and video) needs no config. The contract layer reads this file
 - `infra`: dependency names that are always infrastructure hops (never counted as contract misses). Uninstrumented databases, caches and brokers are infrastructure anyway.
 - `rpcPackagePrefix` (optional): the regex stripped from `rpc.service` before matching. By default everything up to the last `.` is stripped (`oteldemo.CartService` → `CartService`).
 
-A worked example is in `examples/astronomy-shop/transit.config.json`.
+A worked example is in `<skill>/examples/astronomy-shop/transit.config.json`.

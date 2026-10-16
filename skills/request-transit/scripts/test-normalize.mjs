@@ -1,4 +1,4 @@
-// scripts/test-normalize.mjs: adapter tests (node scripts/test-normalize.mjs)
+// skills/request-transit/scripts/test-normalize.mjs: adapter tests (node skills/request-transit/scripts/test-normalize.mjs)
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { normalize, parseJsonSafe } from '../adapters/normalize.mjs';

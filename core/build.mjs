@@ -1,15 +1,15 @@
-// engine/build.mjs: trace file (OTLP JSON, Datadog span JSON, Datadog Spans API v2, or normalized)
+// core/build.mjs: trace file (OTLP JSON, Datadog span JSON, Datadog Spans API v2, or normalized)
 // -> one self-contained transit.html (trace, fonts and code inlined; no network at view time).
 //
-// usage: node engine/build.mjs <trace.json> [--out out/transit.html] [--format otlp|datadog|datadog-v2|internal]
+// usage: node core/build.mjs <trace.json> [--out out/transit.html] [--format otlp|datadog|datadog-v2|internal]
 //        [--trace-id ID] [--title "..."] [--subtitle "..."] [--slow-ms N] [--ms-per-sec N]
 //        [--target-seconds 9] [--redact key1,key2] [--no-default-redact]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normalize } from '../adapters/normalize.mjs';
+import { normalize } from '../skills/request-transit/adapters/normalize.mjs';
 import { existsSync } from 'node:fs';
-import { matchTrace } from '../contracts/match.mjs';
+import { matchTrace } from '../skills/request-transit/contracts/match.mjs';
 export const DEFAULT_INDEX = '.transit-cache/contracts/index.json';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -40,7 +40,7 @@ export function build(file, opt = {}) {
   let contracts = null;
   if (opt.contracts) {
     const ix = opt.contracts === true ? DEFAULT_INDEX : opt.contracts;
-    if (!existsSync(ix)) throw new Error(`--contracts: no index at ${ix}. Build one first (ask the user): node scripts/transit.mjs index --config transit.config.json`);
+    if (!existsSync(ix)) throw new Error(`--contracts: no index at ${ix}. Build one first (ask the user): node skills/request-transit/scripts/transit.mjs index --config transit.config.json`);
     contracts = matchTrace(trace, JSON.parse(readFileSync(ix, 'utf8')));
   }
   const js = `window.TRACE = ${JSON.stringify(trace)};\nwindow.VIZ_OPTS = ${JSON.stringify(vizOpts)};\nwindow.CONTRACTS = ${JSON.stringify(contracts)};`.replace(/<\//g, '<\\/');
@@ -55,7 +55,7 @@ export function build(file, opt = {}) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  await (await import('../scripts/setup.mjs')).ensureSetup({ need: [] });   // node version only; the HTML needs no deps
+  await (await import('./setup.mjs')).ensureSetup({ need: [] });   // node version only; the HTML needs no deps
   const argv = process.argv.slice(2); const opt = {}; const pos = [];
   for (let i = 0; i < argv.length; i++) {
     if (!argv[i].startsWith('--')) { pos.push(argv[i]); continue; }
@@ -64,7 +64,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     else if (k === 'contracts' && (!argv[i + 1] || argv[i + 1].startsWith('--'))) opt[k] = true;
     else opt[k] = argv[++i];
   }
-  if (!pos[0]) { console.error('usage: node engine/build.mjs <trace.json> [--out out/transit.html] [--title ...]'); process.exit(1); }
+  if (!pos[0]) { console.error('usage: node core/build.mjs <trace.json> [--out out/transit.html] [--title ...]'); process.exit(1); }
   const { out, trace, contracts } = build(pos[0], opt);
   for (const w of trace.meta.warnings) console.error('warning:', w);
   console.log(`wrote ${out} (${trace.spans.length} spans, ${trace.meta.format}${trace.meta.synthetic ? ', synthetic' : ''}, ${trace.meta.redacted} attrs redacted${contracts ? `, contracts: ${Object.values(contracts.bySpan).filter((m) => m.state === 'matched' || m.state === 'fallback').length} matched / ${Object.values(contracts.bySpan).filter((m) => m.state === 'unmatched').length} unmatched / ${Object.values(contracts.bySpan).filter((m) => m.state === 'infra').length} infra` : ''})`);

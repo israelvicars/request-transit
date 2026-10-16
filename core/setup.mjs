@@ -11,8 +11,8 @@
 //   ffmpeg + ffprobe       PATH or Homebrew/usr-local locations; else `brew install ffmpeg` on macOS (notice),
 //                          or opt-in TRANSIT_FFMPEG_STATIC=1 / --ffmpeg-static (npm ffmpeg-static + ffprobe-static,
 //                          ~80 MB, into node_modules); else instructions
-// The marker .transit-cache/setup.json records what was reused vs installed; scripts read it via engine/tools.mjs.
-// usage: node scripts/setup.mjs [--force] [--check] [--no-download] [--ffmpeg-static]
+// The marker .transit-cache/setup.json records what was reused vs installed; scripts read it via core/tools.mjs.
+// usage: node core/setup.mjs [--force] [--check] [--no-download] [--ffmpeg-static]
 //   --check        dry run: report what would be used or downloaded, change nothing (exit 1 if something is missing)
 //   --no-download  never download (also TRANSIT_NO_DOWNLOAD=1); fail with instructions instead
 // env: TRANSIT_SKIP_SETUP=1 skips everything (prepared CI images); TRANSIT_NO_SYSTEM_BROWSER=1 ignores system
@@ -23,7 +23,7 @@ import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { lookup } from 'node:dns/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ROOT, MARKER, launchOptions } from '../engine/tools.mjs';
+import { ROOT, MARKER, launchOptions } from './tools.mjs';
 
 const MIN_NODE = 18;
 const log = (m) => process.stderr.write(`transit setup: ${m}\n`);
@@ -124,7 +124,7 @@ async function pickFfmpeg({ check, noDownload, wantStatic }) {
   const found = findFfmpeg();
   if (found) return { source: found.static ? 'ffmpeg-static' : 'system', ffmpeg: found.ffmpeg, ffprobe: found.ffprobe };
   const how = process.platform === 'darwin' ? 'brew install ffmpeg' : process.platform === 'linux' ? 'sudo apt-get install -y ffmpeg  (Fedora: sudo dnf install ffmpeg)' : 'winget install Gyan.FFmpeg';
-  const help = `ffmpeg/ffprobe are needed for MP4/GIF output and were not found.\n  Install: ${how}\n  Or opt in to a bundled copy: TRANSIT_FFMPEG_STATIC=1 (npm ffmpeg-static + ffprobe-static, ~80 MB)\n  The interactive HTML (engine/build.mjs) works without ffmpeg.`;
+  const help = `ffmpeg/ffprobe are needed for MP4/GIF output and were not found.\n  Install: ${how}\n  Or opt in to a bundled copy: TRANSIT_FFMPEG_STATIC=1 (npm ffmpeg-static + ffprobe-static, ~80 MB)\n  The interactive HTML (core/build.mjs) works without ffmpeg.`;
   if (check) return { source: 'missing', note: wantStatic ? 'would install ffmpeg-static + ffprobe-static (~80 MB)' : process.platform === 'darwin' && runs('brew', ['--version']) ? 'would run brew install ffmpeg (~100+ MB with dependencies)' : how };
   if (noDownload) fail(help);
   if (wantStatic || (process.platform === 'darwin' && runs('brew', ['--version']))) {

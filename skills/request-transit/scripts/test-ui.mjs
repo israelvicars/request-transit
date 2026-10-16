@@ -1,10 +1,10 @@
-// scripts/test-ui.mjs: Playwright keyboard + click tests for the interactive page (not the video).
-// usage: node scripts/test-ui.mjs [out/otel/transit.html] [--shot out/ui/panel.png]
+// skills/request-transit/scripts/test-ui.mjs: Playwright keyboard + click tests for the interactive page (not the video).
+// usage: node skills/request-transit/scripts/test-ui.mjs [out/otel/transit.html] [--shot out/ui/panel.png]
 import { pathToFileURL } from 'node:url';
 import { resolve, dirname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
-await (await import('./setup.mjs')).ensureSetup({ need: ['deps', 'browser'] });
-const { launchBrowser } = await import('../engine/tools.mjs');
+await (await import('../../../core/setup.mjs')).ensureSetup({ need: ['deps', 'browser'] });
+const { launchBrowser } = await import('../../../core/tools.mjs');
 const argv = process.argv.slice(2);
 const file = argv.find((a) => !a.startsWith('--')) || 'out/otel/transit.html';
 const shot = argv.includes('--shot') ? argv[argv.indexOf('--shot') + 1] : null;

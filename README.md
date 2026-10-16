@@ -26,7 +26,7 @@ npm run build     # out/otel/transit.html: open it, press ? for shortcuts
 npm run render    # out/otel/anim.mp4 + anim.gif + contact.png
 ```
 
-Your own trace: `node scripts/render.mjs path/to/trace.json --name mine --title "Checkout, Tuesday 14:02"`.
+Your own trace: `node core/render.mjs path/to/trace.json --name mine --title "Checkout, Tuesday 14:02"`.
 
 The first run sets itself up and **reuses what you already have** before downloading anything:
 
@@ -38,7 +38,7 @@ The first run sets itself up and **reuses what you already have** before downloa
 - **ffmpeg:** ffmpeg on your PATH or in the Homebrew locations. If it's missing: `brew install ffmpeg` on macOS (announced first), or opt-in `TRANSIT_FFMPEG_STATIC=1`.
 - **npm deps:** a single dependency, `playwright-core` (~13 MB).
 
-`node scripts/setup.mjs --check` reports what would be used or downloaded and changes nothing. Flags and settings:
+`node core/setup.mjs --check` reports what would be used or downloaded and changes nothing. Flags and settings:
 
 - `--no-download` / `TRANSIT_NO_DOWNLOAD=1` never downloads.
 - `TRANSIT_BROWSER=/path|chrome|msedge` forces a browser.
@@ -114,7 +114,7 @@ Observability MCP servers (PostHog, Datadog, Grafana/Tempo, Sentry, AWS, …) ar
   - **Side panel:** a station-sign header, a breadcrumb, a mini waterfall with self time, client and server timings, and grouped attributes.
   - **Deep links:** `#span=<id>`.
 - **Deterministic video.** Two renders are byte-identical (`npm run verify` checks it, along with train timing and ffmpeg freeze/black detection).
-- **Optional contract layer.** It shows each hop's *expected* request and response from your code: Express + Zod/Joi, NestJS + class-validator, TypeScript types, protobuf and OpenAPI. Shared-package imports are followed, and each shape gets a file:line and a confidence level. Gaps are shown, never guessed. It is opt-in: `node scripts/transit.mjs index`, then build with `--contracts`. See [`examples/astronomy-shop`](examples/astronomy-shop) for the demo.
+- **Optional contract layer.** It shows each hop's *expected* request and response from your code: Express + Zod/Joi, NestJS + class-validator, TypeScript types, protobuf and OpenAPI. Shared-package imports are followed, and each shape gets a file:line and a confidence level. Gaps are shown, never guessed. It is opt-in: `node skills/request-transit/scripts/transit.mjs index`, then build with `--contracts`. See [`skills/request-transit/examples/astronomy-shop`](skills/request-transit/examples/astronomy-shop) for the demo.
 
 <p align="center"><img src="docs/panel.png" alt="Interactive page with the side panel open on the shipping hop: client and server timings, a Joi request card and a TypeScript response card" width="900"></p>
 
@@ -123,7 +123,7 @@ Observability MCP servers (PostHog, Datadog, Grafana/Tempo, Sentry, AWS, …) ar
 ```mermaid
 flowchart LR
   A[trace file<br>or MCP result] --> B[adapters/normalize.mjs<br>one span shape]
-  B --> C[engine/build.mjs<br>redact + layout data]
+  B --> C[core/build.mjs<br>redact + layout data]
   K[(optional<br>contract index)] -.->|with --contracts| C
   C --> D[transit.html<br>self-contained]
   D --> E[render-frames.mjs<br>renderAt t, frozen rAF]
@@ -140,7 +140,7 @@ Each frame is a pure function `renderAt(t)`: no clock, no timers, no randomness.
 - **A self-contained page.** `transit.html` inlines its data, script, fonts and icon. It loads nothing from a CDN, fetches no fonts and sends no beacons. `npm run test:network` opens the built page (with and without contracts), plays it, drives the panel and **fails on any network request**.
 - **The only network use:**
   - First-run setup downloads, only when missing and announced first: npm deps, the headless browser, ffmpeg.
-  - The optional fetch scripts (`scripts/fetch.mjs …`), which you run against **your own** Datadog, PostHog, AWS or Tempo account with keys from your environment. They never write keys anywhere.
+  - The optional fetch scripts (`skills/request-transit/scripts/fetch.mjs …`), which you run against **your own** Datadog, PostHog, AWS or Tempo account with keys from your environment. They never write keys anywhere.
 - **Redaction before render.** Attribute keys that look like PII (user, email, token, auth, cookie, session, card, client IP…) are dropped at build time. Add more with `--redact k1,k2`. Request and response payloads are never shown (tracers don't record them). See [`references/adapters.md`](references/adapters.md#privacy).
 - **Your code stays put.** The contract layer runs only when you ask, and the skill asks first. It reads your repos locally and caches results in `.transit-cache/`, which is gitignored and never committed.
 
@@ -149,10 +149,10 @@ Each frame is a pure function `renderAt(t)`: no clock, no timers, no randomness.
 | Path | |
 | --- | --- |
 | `SKILL.md`, `references/` | agent skill entry point; design system, adapters, sources, contracts, config |
-| `engine/` | build (trace → self-contained HTML), subway template, frame renderer, ffmpeg export, fonts |
+| `core/` | build (trace → self-contained HTML), subway template, frame renderer, ffmpeg export, fonts |
 | `adapters/` | OTLP, Tempo, PostHog, Datadog, Datadog v2 and X-Ray → normalized spans; API/CLI fetch scripts |
 | `contracts/` | optional contract layer: extractors, index, matcher |
-| `scripts/` | `setup`, `fetch`, `render`, `verify`, `still`, `transit` (index), tests |
+| `core/` + `skills/request-transit/scripts/` | shared setup/render/verify/still and request-transit fetch/index/tests |
 | `samples/`, `examples/` | synthetic traces and a synthetic example app |
 | `docs/` | README images |
 

@@ -1,4 +1,4 @@
-// engine/tools.mjs: the browser and ffmpeg that scripts/setup.mjs chose, recorded in .transit-cache/setup.json.
+// core/tools.mjs: the browser and ffmpeg that core/setup.mjs chose, recorded in .transit-cache/setup.json.
 // Every script launches Chromium and runs ffmpeg through here, so a reused system Chrome or a reused
 // Playwright cache from another project is used the same way everywhere.
 //   TRANSIT_BROWSER=/path/to/chrome | chrome | msedge | bundled   overrides the recorded choice

@@ -22,6 +22,6 @@ service names and route names are borrowed so the trace and the code meet.
 Build the index (explicit, never automatic) and a contract-aware page:
 
 ```
-node scripts/transit.mjs index --config examples/astronomy-shop/transit.config.json
-node engine/build.mjs samples/otel-demo-checkout.otlp.json --contracts --out out/otel-contracts/transit.html
+node skills/request-transit/scripts/transit.mjs index --config skills/request-transit/examples/astronomy-shop/transit.config.json
+node core/build.mjs skills/request-transit/samples/otel-demo-checkout.otlp.json --contracts --out out/otel-contracts/transit.html
 ```

@@ -1,9 +1,9 @@
-// scripts/fetch.mjs: get one trace into the normalized Transit shape. All backends write the same file.
-//   file (default, no auth):  node scripts/fetch.mjs file <trace.json> [--out trace.transit.json] [--trace-id ID]
-//   datadog-api (headless/CI): node scripts/fetch.mjs datadog-api <trace_id>   (needs DD_API_KEY, DD_APP_KEY, DD_SITE; untested)
-//   posthog-api (headless):  node scripts/fetch.mjs posthog-api <trace_id> (POSTHOG_API_KEY, POSTHOG_HOST, POSTHOG_PROJECT_ID; untested)
-//   xray (headless, AWS CLI):  node scripts/fetch.mjs xray <trace id> | xray --find   (your AWS CLI credentials; untested live)
-//   tempo (headless):  node scripts/fetch.mjs tempo <trace_id> | tempo --find '<TraceQL>'  (TEMPO_URL, optional TEMPO_TOKEN / TEMPO_USER+TEMPO_PASSWORD / TEMPO_TENANT)
+// skills/request-transit/scripts/fetch.mjs: get one trace into the normalized Transit shape. All backends write the same file.
+//   file (default, no auth):  node skills/request-transit/scripts/fetch.mjs file <trace.json> [--out trace.transit.json] [--trace-id ID]
+//   datadog-api (headless/CI): node skills/request-transit/scripts/fetch.mjs datadog-api <trace_id>   (needs DD_API_KEY, DD_APP_KEY, DD_SITE; untested)
+//   posthog-api (headless):  node skills/request-transit/scripts/fetch.mjs posthog-api <trace_id> (POSTHOG_API_KEY, POSTHOG_HOST, POSTHOG_PROJECT_ID; untested)
+//   xray (headless, AWS CLI):  node skills/request-transit/scripts/fetch.mjs xray <trace id> | xray --find   (your AWS CLI credentials; untested live)
+//   tempo (headless):  node skills/request-transit/scripts/fetch.mjs tempo <trace_id> | tempo --find '<TraceQL>'  (TEMPO_URL, optional TEMPO_TOKEN / TEMPO_USER+TEMPO_PASSWORD / TEMPO_TENANT)
 //   grafana-mcp (interactive): agent fetches the trace via the Grafana MCP server (or Tempo's own /api/mcp), saves JSON, then `file`.
 //   aws-mcp (interactive): agent calls get_xray_trace on the CloudWatch Application Signals MCP server, saves JSON, then `file`.
 //   posthog-mcp (interactive): agent calls apm-trace-get, saves the JSON, then uses `file`.
@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { normalize } from '../adapters/normalize.mjs';
-import { ensureSetup } from './setup.mjs';
+import { ensureSetup } from '../../../core/setup.mjs';
 await ensureSetup({ need: [] });
 const runChild = (file, args) => { try { execFileSync('node', [new URL(file, import.meta.url).pathname, ...args], { stdio: 'inherit' }); } catch (e) { process.exit(e.status || 1); } };
 const [backend, arg, ...rest] = process.argv.slice(2); const opt = {};
@@ -31,5 +31,5 @@ if (backend === 'file' && arg) {
 } else if (backend === 'xray' && arg) {
   runChild('../adapters/fetch-xray.mjs', [arg, ...rest]);
 } else {
-  console.error('usage: node scripts/fetch.mjs file <trace.json> | datadog-api <trace_id> | posthog-api <trace_id> | xray <trace_id>|--find | tempo <trace_id>|--find'); process.exit(1);
+  console.error('usage: node skills/request-transit/scripts/fetch.mjs file <trace.json> | datadog-api <trace_id> | posthog-api <trace_id> | xray <trace_id>|--find | tempo <trace_id>|--find'); process.exit(1);
 }

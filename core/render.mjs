@@ -1,13 +1,13 @@
-// scripts/render.mjs: trace file -> out/<name>/{transit.html, frames/, anim.mp4, anim.gif, contact.png}
+// core/render.mjs: trace file -> out/<name>/{transit.html, frames/, anim.mp4, anim.gif, contact.png}
 // Frame-exact: the page's rAF loop is frozen and every frame is renderAt(i / fps).
-// usage: node scripts/render.mjs <trace.json> [--name NAME] [build options...]
+// usage: node core/render.mjs <trace.json> [--name NAME] [build options...]
 import { execFileSync } from 'node:child_process';
 import { ensureSetup } from './setup.mjs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { build } from '../engine/build.mjs';
+import { build } from './build.mjs';
 await ensureSetup({ need: ['deps', 'browser', 'ffmpeg'] });
-const { launchBrowser } = await import('../engine/tools.mjs');
+const { launchBrowser } = await import('./tools.mjs');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2); const opt = {}; const pos = [];
@@ -16,7 +16,7 @@ for (let i = 0; i < argv.length; i++) {
   const k = argv[i].slice(2);
   opt[k] = k === 'contracts' && (!argv[i + 1] || argv[i + 1].startsWith('--')) ? true : argv[++i];
 }
-if (!pos[0]) { console.error('usage: node scripts/render.mjs <trace.json> [--name NAME]'); process.exit(1); }
+if (!pos[0]) { console.error('usage: node core/render.mjs <trace.json> [--name NAME]'); process.exit(1); }
 const name = opt.name || 'trace';
 const dir = resolve(opt['out-dir'] || join(ROOT, 'out', name));
 const frames = opt.frames || join(dir, 'frames');
@@ -28,6 +28,6 @@ const { seconds, fps, msPerSec } = await page.evaluate(() => window.VIZ);
 await browser.close();
 console.log(`${name}: ${seconds.toFixed(3)} s at ${fps} fps, 1 s of video = ${msPerSec} ms of trace`);
 const run = (args) => execFileSync('node', args, { cwd: ROOT, stdio: 'inherit' });
-run(['engine/render-frames.mjs', html, String(seconds), String(fps), '--out', frames]);
+run(['core/render-frames.mjs', html, String(seconds), String(fps), '--out', frames]);
 if (opt['frames-only']) process.exit(0);
-for (const k of ['mp4', 'gif', 'sheet']) run(['engine/export.mjs', k, '--fps', String(fps), '--frames', frames, '--out', dir]);
+for (const k of ['mp4', 'gif', 'sheet']) run(['core/export.mjs', k, '--fps', String(fps), '--frames', frames, '--out', dir]);

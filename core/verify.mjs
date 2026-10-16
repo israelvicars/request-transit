@@ -1,18 +1,18 @@
-// scripts/verify.mjs: done-check for story 4 (share a flow).
+// core/verify.mjs: done-check for story 4 (share a flow).
 //   1. determinism: render every frame twice into separate folders, sha256 each PNG, compare
 //   2. timing: each train leaves on frame ceil((intro + span.start / msPerSec) * fps)
 //   3. ffmpeg gates on anim.mp4: freezedetect (no static stretch longer than intro/outro allow),
 //      blackdetect (no black gaps) and blackdetect on the negated film (no blank white gaps)
-// usage: node scripts/verify.mjs <trace.json> --name otel [build options]
+// usage: node core/verify.mjs <trace.json> --name otel [build options]
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ensureSetup } from './setup.mjs';
-import { ffmpegBin, ffprobeBin } from '../engine/tools.mjs';
+import { ffmpegBin, ffprobeBin } from './tools.mjs';
 await ensureSetup({ need: ['deps', 'browser', 'ffmpeg'] });
-const { launchBrowser } = await import('../engine/tools.mjs');
+const { launchBrowser } = await import('./tools.mjs');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2); const opt = {}; const pos = [];
@@ -25,8 +25,8 @@ const pass = (args) => { const a = [...args]; for (const [k, v] of Object.entrie
 
 // 1. two independent full renders
 const runA = join(dir, 'frames'), runB = join(dir, 'frames-rerun');
-execFileSync('node', pass(['scripts/render.mjs', pos[0], '--name', name]), { cwd: ROOT, stdio: 'ignore' });
-execFileSync('node', pass(['scripts/render.mjs', pos[0], '--name', name, '--frames', runB, '--frames-only', '1']), { cwd: ROOT, stdio: 'ignore' });
+execFileSync('node', pass(['core/render.mjs', pos[0], '--name', name]), { cwd: ROOT, stdio: 'ignore' });
+execFileSync('node', pass(['core/render.mjs', pos[0], '--name', name, '--frames', runB, '--frames-only', '1']), { cwd: ROOT, stdio: 'ignore' });
 const sha = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
 const A = readdirSync(runA).filter((f) => f.endsWith('.png')).sort(), B = readdirSync(runB).filter((f) => f.endsWith('.png')).sort();
 const diff = A.filter((f, i) => B[i] !== f || sha(join(runA, f)) !== sha(join(runB, f)));

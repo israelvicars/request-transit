@@ -1,16 +1,16 @@
-// scripts/test-network.mjs: privacy check. Builds the interactive page (with and without contracts), opens it
+// core/test-network.mjs: privacy check. Builds the interactive page (with and without contracts), opens it
 // in Chromium, plays it and drives the panel, and fails if the page makes ANY request other than its own
 // file:// load or inline data: URLs (no CDN, fonts, analytics, beacons, websockets).
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ensureSetup } from './setup.mjs';
-import { build } from '../engine/build.mjs';
+import { build } from './build.mjs';
 await ensureSetup({ need: ['deps', 'browser'] });
-const { launchBrowser, ROOT } = await import('../engine/tools.mjs');
+const { launchBrowser, ROOT } = await import('./tools.mjs');
 const dir = join(ROOT, '.transit-cache', 'test-network'); mkdirSync(dir, { recursive: true });
-const pages = [build(join(ROOT, 'samples/otel-demo-checkout.otlp.json'), { out: join(dir, 'plain.html') }).out];
-try { pages.push(build(join(ROOT, 'samples/otel-demo-checkout.otlp.json'), { out: join(dir, 'contracts.html'), contracts: join(ROOT, '.transit-cache/contracts/index.json') }).out); } catch { /* no index built: plain page only */ }
+const pages = [build(join(ROOT, 'skills/request-transit/samples/otel-demo-checkout.otlp.json'), { out: join(dir, 'plain.html') }).out];
+try { pages.push(build(join(ROOT, 'skills/request-transit/samples/otel-demo-checkout.otlp.json'), { out: join(dir, 'contracts.html'), contracts: join(ROOT, '.transit-cache/contracts/index.json') }).out); } catch { /* no index built: plain page only */ }
 const browser = await launchBrowser();
 let bad = [];
 for (const html of pages) {

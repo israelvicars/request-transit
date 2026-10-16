@@ -68,11 +68,11 @@ No randomness, no clocks, so story 4's frame hashes hold.
 
 ## Type
 
-Transit inlines **Arimo** (SIL Open Font License 1.1, `engine/fonts/OFL-Arimo.txt`), subset to Latin,
+Transit inlines **Arimo** (SIL Open Font License 1.1, `core/fonts/OFL-Arimo.txt`), subset to Latin,
 weights 400 and 700, as the family `"Transit Sans"`. Arimo is metric-compatible with Arial and close to
 Helvetica in colour. Inlining keeps renders identical on every machine.
 
 Helvetica, Neue Helvetica, Akzidenz-Grotesk/Standard Medium and the NYCT sign fonts are commercially
-licensed and are not bundled. To use one you own: put the `.woff` files in `engine/fonts/` and change the
-`face()` sources in `engine/build.mjs` (or edit `F.ui` in `engine/transit.template.html` to name an
+licensed and are not bundled. To use one you own: put the `.woff` files in `core/fonts/` and change the
+`face()` sources in `core/build.mjs` (or edit `F.ui` in `core/transit.template.html` to name an
 installed family). Frame hashes will then only match on machines with the same font file.

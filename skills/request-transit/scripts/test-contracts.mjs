@@ -1,10 +1,10 @@
-// scripts/test-contracts.mjs: contract layer tests (extractors, import resolution, matcher, cache, opt-in).
+// skills/request-transit/scripts/test-contracts.mjs: contract layer tests (extractors, import resolution, matcher, cache, opt-in).
 import assert from 'node:assert/strict';
 import { readFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { buildIndex } from '../contracts/indexer.mjs';
 import { matchTrace, normPath } from '../contracts/match.mjs';
 import { normalize } from '../adapters/normalize.mjs';
-import { build } from '../engine/build.mjs';
+import { build } from '../../../core/build.mjs';
 import zod from '../contracts/extractors/zod.mjs';
 import joi from '../contracts/extractors/joi.mjs';
 import cv from '../contracts/extractors/class-validator.mjs';
@@ -13,7 +13,7 @@ import { show } from '../contracts/schema.mjs';
 import proto from '../contracts/extractors/protobuf.mjs';
 
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok  ', name); };
-const CFG = 'examples/astronomy-shop/transit.config.json', CACHE = '.transit-cache/test-contracts';
+const CFG = 'skills/request-transit/examples/astronomy-shop/transit.config.json', CACHE = '.transit-cache/test-contracts';
 rmSync(CACHE, { recursive: true, force: true });
 
 t('zod: object, chains, optional, enum, array, refs', () => {
@@ -81,7 +81,7 @@ t('cache: second run reads every file from cache and writes identical bytes', ()
   assert.ok(!/\d{4}-\d\d-\d\dT/.test(a), 'no timestamps');
 });
 t('matcher on the OTel demo checkout: matched, fallback, infra, unmatched', () => {
-  const tr = normalize(readFileSync('samples/otel-demo-checkout.otlp.json', 'utf8'));
+  const tr = normalize(readFileSync('skills/request-transit/samples/otel-demo-checkout.otlp.json', 'utf8'));
   const m = matchTrace(tr, index);
   const st = (svc, name) => m.bySpan[tr.spans.find((s) => s.service === svc && (!name || s.name === name) && m.bySpan[s.spanId]).spanId];
   assert.equal(st('quote').state, 'matched');                       // /getquote vs /api/v1/getquote (prefix optional)
@@ -106,12 +106,12 @@ t('matcher on the OTel demo checkout: matched, fallback, infra, unmatched', () =
   assert.equal(mx.bySpan.b.state, 'unmatched'); assert.match(mx.bySpan.b.reason, /no entry for POST \/nope among 2 in shipping/);
 });
 t('opt-in: no index read without --contracts; missing index is an error, never an implicit index run', () => {
-  const plain = build('samples/otel-demo-checkout.otlp.json', { out: `${CACHE}/plain.html` });
+  const plain = build('skills/request-transit/samples/otel-demo-checkout.otlp.json', { out: `${CACHE}/plain.html` });
   assert.equal(plain.contracts, null);
   assert.match(readFileSync(`${CACHE}/plain.html`, 'utf8'), /window\.CONTRACTS = null;/);
-  assert.throws(() => build('samples/otel-demo-checkout.otlp.json', { out: `${CACHE}/x.html`, contracts: `${CACHE}/nope.json` }), /transit\.mjs index/);
+  assert.throws(() => build('skills/request-transit/samples/otel-demo-checkout.otlp.json', { out: `${CACHE}/x.html`, contracts: `${CACHE}/nope.json` }), /transit\.mjs index/);
   const before = readdirSync(`${CACHE}/files`).length;
-  const withC = build('samples/otel-demo-checkout.otlp.json', { out: `${CACHE}/c.html`, contracts: `${CACHE}/index.json` });
+  const withC = build('skills/request-transit/samples/otel-demo-checkout.otlp.json', { out: `${CACHE}/c.html`, contracts: `${CACHE}/index.json` });
   assert.ok(withC.contracts.entries.length > 0);
   assert.equal(readdirSync(`${CACHE}/files`).length, before);
 });

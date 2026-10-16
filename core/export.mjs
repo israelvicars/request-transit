@@ -1,7 +1,7 @@
 // scripts/export.mjs: turn out/frames/*.png into an MP4, a single-palette GIF, a contact sheet,
 // and a loop check. Works on macOS and Windows (just needs node + ffmpeg on PATH).
 //
-// usage: node scripts/export.mjs [all|mp4|gif|sheet|loop] [--fps 24] [--frames out/frames] [--out out]
+// usage: node core/export.mjs [all|mp4|gif|sheet|loop] [--fps 24] [--frames out/frames] [--out out]
 //
 // Runs the article's ffmpeg commands with these fixes:
 //   - GIF is scaled to fit inside 1200x1080 (X's GIF limit is 1280x1080; the article's
