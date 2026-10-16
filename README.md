@@ -8,8 +8,6 @@
 
 Transit is a local toolkit of Agent Skills that turns requests, CI runs, and coding-agent sessions into animated transit maps. Lines show the main unit of work, stations show individual events, DELAY marks slow work, and SERVICE ALERT marks an error or other failure.
 
-The hero is rendered from the synthetic trace at `skills/request-transit/samples/otel-demo-checkout.otlp.json`.
-
 ## Skills
 
 ### request-transit
@@ -41,6 +39,33 @@ Jobs are lines, steps are stations, and failed, cancelled, or slow steps become 
 **A transit map for your coding-agent sessions.** (Claude Code, Codex, Cursor)
 
 Tool families are lines, tool calls are stations, and errors, denials, or long calls become SERVICE ALERT or DELAY markers. By default it keeps only tool names, timing, status, target basenames, and the agent source; prompts, code, commands, output, and arguments stay out of the map. Example commands are `npm run build:agent`, `npm run render:agent`, and `npm run verify:agent`.
+
+## Example prompts
+
+Type these in Claude Code, Codex or Cursor once the skills are installed.
+
+**request-transit**
+- "Animate this OTLP trace as a transit map: `./trace.json`"
+- "Draw Datadog trace 4bf92f… as a transit map and tell me where the delay is"
+- "Make a GIF of trace abc123 from Tempo for the incident doc"
+
+**ci-transit**
+- "Show my last failed GitHub Actions run as a transit map"
+- "Render run 1234567890 in owner/repo as an MP4"
+
+**agent-transit**
+- "Make an MP4 of my last Claude Code session"
+- "Draw my latest Codex session as a transit map. Which tool calls were slow?"
+
+## Outputs
+
+| Output | What you get | Ask for it |
+| --- | --- | --- |
+| Interactive page | One self-contained HTML file. Works offline and makes no network requests. Play, scrub, click a station for details, scroll the list. | "…as a transit map" (default) |
+| GIF | A looping animation for docs, PRs and chat | "…as a GIF" |
+| MP4 | Deterministic and frame-exact: the same input gives byte-identical video every time | "…as an MP4" or "render a video" |
+
+GIF and MP4 also write a `contact.png` contact sheet. Video needs a local Chromium and ffmpeg; first-run setup reuses what you have and tells you before it downloads anything.
 
 ## Install
 
