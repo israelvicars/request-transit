@@ -101,3 +101,8 @@ Gates: npm run check passes; MP4 identical; request UI PNGs identical. Diffstat 
 Images: out/spike/before.png (main) and out/spike/after.png.
 Known rough edges: the extra trains appear in the THIS TRIP strip as extra E markers at the needed jobs' end times (240 s, 600 s), and a train runs from a finished need to build even before build starts.
 Recommendation: merge after one small follow-up (hide ciExtra calls from the strip markers); the change is small, gated to CI, and gate-clean.
+
+## Multi-needs merged + rough edges fixed; root README per-skill GIFs: done (1c52bf8, 2361e58)
+spike/multi-needs was fast-forwarded into suite and the local branch deleted. Hand fixes, no Codex (0 tokens): trainFor returns null for ciExtra connector calls, so no trains run on them; the strip's hops list leaves ciExtra out, so there are no extra markers; and an extra connector's start is max(need end, target start), so its line is only revealed once the target job starts. The layout parent's train is unchanged.
+Root README: request/ci/agent sections link to skills/<name>/README.md on GitHub (blob/main); ci and agent sections embed docs/ci.gif and docs/agent.gif via the raw main URL (width 700). request-transit points to the hero GIF instead of repeating it.
+Gates: npm run check passes; MP4 identical; request UI PNGs identical. docs/ci.gif regenerated (463,322 B).
