@@ -44,16 +44,16 @@ export const vocab = {
   },
   ci: {
     lineNoun: 'job', stationNoun: 'step', hopNoun: 'dependency', hopNounPlural: 'dependencies',
-    request: 'workflow run', response: 'completion', delay: 'SLOW STEP', serviceAlert: 'JOB FAILED',
-    legendDelay: 'slow step: self time ≥', legendAlert: 'job failed: error starts here',
+    request: 'workflow run', response: 'completion', delay: 'DELAY', serviceAlert: 'SERVICE ALERT',
+    legendDelay: 'delay: self time ≥', legendAlert: 'service alert: error starts here',
     tableTitle: 'Steps', tableSpan: 'step', infrastructure: 'workflow infrastructure',
     hop: 'STEP', span: 'JOB', trace: 'run', error: 'failed', slow: 'slow step',
   },
   agent: {
     lineNoun: 'tool family', stationNoun: 'call', hopNoun: 'call', hopNounPlural: 'calls',
     trace: 'session', request: 'session', response: 'completion', tableTitle: 'Tool calls', tableSpan: 'call',
-    delay: 'SLOW CALL', serviceAlert: 'TOOL ERROR', legendDelay: 'slow call: self time ≥',
-    legendAlert: 'tool error: error starts here', infrastructure: 'agent infrastructure',
+    delay: 'DELAY', serviceAlert: 'SERVICE ALERT', legendDelay: 'delay: self time ≥',
+    legendAlert: 'service alert: error starts here', infrastructure: 'agent infrastructure',
     hop: 'CALL', span: 'TOOL', error: 'error', slow: 'slow call',
   },
 };

@@ -60,7 +60,7 @@ Every script checks its own prerequisites the first time (`<skill>/../../core/se
   add more with `--redact key1,key2`. Payloads are never shown (tracers don't store them).
 - Useful flags: `--slow-ms N`, `--ms-per-sec N`, `--target-seconds 9`, `--trace-id ID`, `--format otlp|datadog|datadog-v2|internal`.
 
-Details: `references/adapters.md`, `references/design-system.md`, `references/config.md`, `references/extractors.md`.
+Details: `references/adapters.md`, `references/config.md`, `references/extractors.md`.
 
 
 ## Interactive page

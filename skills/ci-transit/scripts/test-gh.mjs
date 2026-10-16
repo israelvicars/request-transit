@@ -19,5 +19,5 @@ assert.deepEqual(trace.meta.warnings, []);
 const out = '/private/tmp/transit-ci-test.html';
 build(new URL('../samples/gh-run-sample.json', import.meta.url), { out });
 const html = readFileSync(out, 'utf8');
-for (const word of ['job', 'step', 'JOB FAILED', 'SLOW STEP', 'Steps']) assert.match(html, new RegExp(word));
+for (const word of ['job', 'step', 'SERVICE ALERT', 'DELAY', 'Steps']) assert.match(html, new RegExp(word));
 console.log('ci: synthetic GitHub Actions normalization and CI vocab pass');

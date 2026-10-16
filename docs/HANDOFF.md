@@ -43,3 +43,10 @@ Bugs fixed (Codex 72,901 tokens, plus hand fixes):
 Gates: npm test, verify (MP4 identical), verify:ci, verify:agent, test:ui all pass; no SECRET_CANARY in out/.
 Sources: https://docs.rs/crate/cursordump/latest/source/docs/knowledge-base.md , https://forum.cursor.com/t/richer-agent-transcripts-lifecycle-data-for-observability-langfuse-stop-hooks/166592 , https://forum.cursor.com/t/accessing-the-full-agent-transcript-in-cursor/157311 , https://www.bough.run/docs/format/codex , https://github.com/openai/codex/blob/main/codex-rs/app-server-protocol/schema/typescript/ResponseItem.ts , https://claude-dev.tools/docs/jsonl-format , https://github.com/glebmish/claude-code-replay/blob/main/docs/log-format.md
 Next: M7 still blocked on the suite name.
+
+## Branding pass: done
+Rules: suite "Transit", skills `<thing>-transit`, alerts DELAY / SERVICE ALERT only, MTA disclaimer in README (b65e420). Lettered circle bullets are KEPT by user decision.
+- design-system.md rewritten as a plain spec (no MTA, history, Helvetica, or "official"), then made LOCAL ONLY: removed from the index with `git rm --cached` and added to .gitignore. The file still exists on disk. SKILL.md no longer points at it; the template comment now reads "NYC-subway-style palette; colours are original."
+- vocab: ci and agent alerts are now DELAY / SERVICE ALERT (test-gh updated). package.json description lists all 5 sources. Plugin SKILL.md copies regenerated.
+- Gates: npm test, verify (MP4 identical to baseline), verify:ci, verify:agent, test:ui all pass.
+- Note: the old design-system.md is still in public main history on GitHub; untracking only affects future commits.

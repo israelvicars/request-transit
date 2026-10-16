@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Transit: a public transit map for your requests. Animates one trace (OpenTelemetry or Datadog) as a subway map.",
+  "description": "Transit: a public transit map for your requests. Animates one trace (OpenTelemetry/OTLP, Datadog, PostHog, AWS X-Ray, Grafana Tempo) as a subway map.",
   "scripts": {
     "test": "node skills/request-transit/scripts/test-normalize.mjs && node skills/request-transit/scripts/test-contracts.mjs && node core/test-vocab.mjs && node skills/ci-transit/scripts/test-gh.mjs && node skills/agent-transit/scripts/test-agent.mjs && node scripts/build-plugin-skill.mjs --check",
     "build": "node core/build.mjs skills/request-transit/samples/otel-demo-checkout.otlp.json --out out/otel/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
