@@ -2,6 +2,8 @@
 
 A transit map for your CI runs.
 
+![Animated Transit map of a GitHub Actions run: each job is a line, its steps are stations, and a DELAY and SERVICE ALERT appear on the failing Run unit tests step](https://raw.githubusercontent.com/israelvicars/transit/main/docs/ci.gif)
+
 ## Example prompts
 
 - “Show my last failed GitHub Actions run as a transit map.”

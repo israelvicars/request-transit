@@ -2,6 +2,8 @@
 
 A transit map for your coding-agent sessions.
 
+![Animated Transit map of a coding-agent session: tool families are lines, tool calls are stations, with DELAY and SERVICE ALERT markers on slow and failed calls](https://raw.githubusercontent.com/israelvicars/transit/main/docs/agent.gif)
+
 ## Example prompts
 
 - “Make an MP4 of my last Claude Code session.”
