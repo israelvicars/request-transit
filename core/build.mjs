@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { normalize } from '../skills/request-transit/adapters/normalize.mjs';
 import { existsSync } from 'node:fs';
 import { matchTrace } from '../skills/request-transit/contracts/match.mjs';
+import { resolveVocab } from './vocab.mjs';
 export const DEFAULT_INDEX = '.transit-cache/contracts/index.json';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -36,6 +37,7 @@ export function build(file, opt = {}) {
   if (opt['slow-ms']) vizOpts.slowMs = Number(opt['slow-ms']);
   if (opt['ms-per-sec']) vizOpts.msPerSec = Number(opt['ms-per-sec']);
   if (opt['target-seconds']) vizOpts.targetSeconds = Number(opt['target-seconds']);
+  vizOpts.vocab = resolveVocab(opt.vocab);
   // contracts are opt-in: only an explicit --contracts [index.json] reads an index, and it never builds one
   let contracts = null;
   if (opt.contracts) {

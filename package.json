@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Transit: a public transit map for your requests. Animates one trace (OpenTelemetry or Datadog) as a subway map.",
   "scripts": {
-    "test": "node skills/request-transit/scripts/test-normalize.mjs && node skills/request-transit/scripts/test-contracts.mjs && node scripts/build-plugin-skill.mjs --check",
+    "test": "node skills/request-transit/scripts/test-normalize.mjs && node skills/request-transit/scripts/test-contracts.mjs && node core/test-vocab.mjs && node scripts/build-plugin-skill.mjs --check",
     "build": "node core/build.mjs skills/request-transit/samples/otel-demo-checkout.otlp.json --out out/otel/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
     "build:dd": "node core/build.mjs skills/request-transit/samples/datadog-sample.json --out out/dd/transit.html --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
     "render": "node core/render.mjs skills/request-transit/samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",

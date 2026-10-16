@@ -116,25 +116,25 @@
 <div id="wrap"><div id="main">
 <canvas id="stage" width="1200" height="900"></canvas>
 <div id="controls">
-  <button id="play">Play</button>
+  <button id="play"></button>
   <input id="scrub" type="range" min="0" max="1" step="0.0001" value="0">
   <span id="speed"><button data-s="0.5">0.5x</button><button data-s="1" class="on">1x</button><button data-s="2">2x</button></span>
   <span class="t" id="tlabel"></span>
 </div>
 <div id="hops"></div>
 </div><aside id="panel"></aside></div>
-<div id="help" hidden><div><h3>Keyboard shortcuts</h3><table>
-<tr><td><kbd>Space</kbd></td><td>play / pause</td></tr>
-<tr><td><kbd>N</kbd> <kbd>↓</kbd> <kbd>Shift</kbd>+<kbd>→</kbd></td><td>next hop</td></tr>
-<tr><td><kbd>P</kbd> <kbd>↑</kbd> <kbd>Shift</kbd>+<kbd>←</kbd></td><td>previous hop</td></tr>
-<tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>seek 0.5 s</td></tr>
-<tr><td><kbd>,</kbd> <kbd>.</kbd></td><td>step one frame</td></tr>
-<tr><td><kbd>Home</kbd> <kbd>End</kbd></td><td>start / end</td></tr>
-<tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>speed 0.5x / 1x / 2x</td></tr>
-<tr><td>click</td><td>station, train or line: select that hop</td></tr>
-<tr><td>pause</td><td>selects the hop in progress</td></tr>
-<tr><td><kbd>Esc</kbd></td><td>deselect / close</td></tr>
-<tr><td><kbd>?</kbd></td><td>this help</td></tr></table></div></div>
+<div id="help" hidden><div><h3></h3><table>
+<tr><td><kbd>Space</kbd></td><td data-vocab="space"></td></tr>
+<tr><td><kbd>N</kbd> <kbd>↓</kbd> <kbd>Shift</kbd>+<kbd>→</kbd></td><td data-vocab="nextHop"></td></tr>
+<tr><td><kbd>P</kbd> <kbd>↑</kbd> <kbd>Shift</kbd>+<kbd>←</kbd></td><td data-vocab="previousHop"></td></tr>
+<tr><td><kbd>←</kbd> <kbd>→</kbd></td><td data-vocab="seek"></td></tr>
+<tr><td><kbd>,</kbd> <kbd>.</kbd></td><td data-vocab="frame"></td></tr>
+<tr><td><kbd>Home</kbd> <kbd>End</kbd></td><td data-vocab="startEnd"></td></tr>
+<tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td data-vocab="speed"></td></tr>
+<tr><td data-vocab="click"></td><td data-vocab="clickHelp"></td></tr>
+<tr><td data-vocab="pause"></td><td data-vocab="pauseHelp"></td></tr>
+<tr><td><kbd>Esc</kbd></td><td data-vocab="escape"></td></tr>
+<tr><td><kbd>?</kbd></td><td data-vocab="help"></td></tr></table></div></div>
 <script>
 /*__TRACE_DATA__*/
 </script>
@@ -161,6 +161,12 @@ if (document.fonts && document.fonts.load) { document.fonts.load(font(400, 14));
 
 // ------------------------------------------------------------------ model
 const D = window.TRACE, OPT = window.VIZ_OPTS || {};
+const REQUEST_VOCAB = { lineNoun: 'service', stationNoun: 'hop', hopNoun: 'hop', hopNounPlural: 'hops', play: 'Play', pause: 'Pause', helpTitle: 'Keyboard shortcuts', space: 'play / pause', nextHop: 'next hop', previousHop: 'previous hop', seek: 'seek 0.5 s', frame: 'step one frame', startEnd: 'start / end', speed: 'speed 0.5x / 1x / 2x', click: 'click', clickHelp: 'station, train or line: select that hop', inspectClick: 'click a station, train or line', pauseHelp: 'selects the hop in progress', escape: 'deselect / close', help: 'this help', of: 'of', video: '1 s of video', trace: 'trace', infrastructure: 'infrastructure', delay: 'DELAY', serviceAlert: 'SERVICE ALERT', request: 'request', response: 'response', legendDelay: 'delay: self time ≥', legendAlert: 'service alert: error starts here', legendInfra: 'dotted: infrastructure (no spans of its own)', synthetic: 'SYNTHETIC sample data', renderedLocally: 'rendered locally by Transit', unmatched: 'unmatched', matched: 'matched', contracts: 'contracts', noContractIndex: 'no contract index', error: 'error', slow: 'slow', ok: 'ok', tableTitle: 'Hops', tableStart: 'start', tableFrom: 'from', tableTo: 'to', tableSpan: 'span', tableStatus: 'status', tableContract: 'contract', infrastructureHop: 'infrastructure hop', infrastructureHopTitle: 'Infrastructure hop', unmatchedContracts: 'unmatched (contracts not indexed)', unmatchedShort: 'unmatched', noHopSelected: 'no hop selected', inspectHop: 'Pause, press', or: 'or', inspectTail: 'to inspect a hop.', shortcuts: 'Shortcuts', transit: 'Transit', hop: 'HOP', span: 'SPAN', from: 'from', client: 'client', server: 'server', noServerSpan: 'no server span', notInstrumented: 'is not instrumented', status: 'status', unset: 'unset', resource: 'resource', attributes: 'Attributes', serverSpan: 'server span', children: 'Children', none: 'none', sensitiveRedacted: 'Sensitive-looking keys are redacted at build time.', redactedAcross: 'attribute(s) redacted across this trace before rendering.', expectedRequestResponse: 'Expected request / response', contractsNotIndexed: 'Contracts not indexed. The contract layer is optional: build an index with', thenBuildWith: 'then build the page with', noHopContract: 'No hop contract for this span', internalWorkInside: 'internal work inside', noContractExpected: 'No contract expected', fallback: 'FALLBACK', matchedTag: 'MATCHED', message: 'Message', noRequestSchema: 'No request schema found', noResponseType: 'No response type found', responseBody: 'no body (void)', unknown: 'unknown', unresolved: 'unresolved', deeperFields: '… deeper fields not shown', optional: 'optional', required: 'required', sharedPackage: 'shared package', declared: 'declared', clientCallFrom: 'client call from', in: 'in', wholeTrace: 'of the whole trace', spanInsideClient: 'server span inside the client call', spanInsideParent: 'span inside its parent', deselect: 'Deselect (Esc)', more: 'more', confidenceHigh: 'high confidence', confidenceMedium: 'medium confidence', confidenceLow: 'low confidence', validator: 'validator', type: 'type', spec: 'spec', schema: 'schema', kind: 'kind', start: 'start', duration: 'duration', self: 'self', groups: { http: 'HTTP', db: 'DB', messaging: 'Messaging', rpc: 'RPC', other: 'Other' } };
+const V = Object.assign({}, REQUEST_VOCAB, OPT.vocab || {});
+document.querySelectorAll('[data-vocab]').forEach((el) => { el.textContent = V[el.dataset.vocab] ?? el.dataset.vocab; });
+document.querySelector('#help h3').textContent = V.helpTitle;
+const playButton = document.getElementById('play');
+playButton.textContent = V.play;
 const spans = D.spans.map((s) => Object.assign({}, s, { end: s.start + s.duration }));
 const byId = new Map(spans.map((s) => [s.spanId, s]));
 const kids = new Map(spans.map((s) => [s.spanId, []]));
@@ -398,7 +404,7 @@ function drawHeader(tm) {
   ctx.textAlign = 'right'; ctx.font = font(700, 22);
   ctx.fillText(fmtMs(clamp(tm, 0, TOTAL)), 1160, 40);
   ctx.font = font(400, 13); ctx.fillStyle = '#CFCFCF';
-  ctx.fillText(`of ${fmtMs(TOTAL)}  ·  1 s of video = ${MS_PER_SEC} ms of trace`, 1160, 62);
+  ctx.fillText(`${V.of} ${fmtMs(TOTAL)}  ·  ${V.video} = ${MS_PER_SEC} ms of ${V.trace}`, 1160, 62);
   ctx.textAlign = 'left'; ctx.fillStyle = C.ink2; ctx.font = font(400, 14);
   ctx.fillText(fitText(OPT.subtitle || `trace ${D.traceId}`, 1120), 40, 104);
 }
@@ -443,7 +449,7 @@ function drawStations(tm) {
     bullet(bx + 8, ly - 5, 8, n);
     ctx.fillStyle = C.ink; ctx.font = font(700, 15); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.fillText(name, bx + 21, ly);
-    if (n.inferred) { ctx.font = font(400, 11); ctx.fillStyle = C.ink2; ctx.textAlign = 'center'; ctx.fillText(n.sub ? `infrastructure · ${n.sub}` : 'infrastructure', n.x, n.y + n.bot + r + 14); }
+    if (n.inferred) { ctx.font = font(400, 11); ctx.fillStyle = C.ink2; ctx.textAlign = 'center'; ctx.fillText(n.sub ? `${V.infrastructure} · ${n.sub}` : V.infrastructure, n.x, n.y + n.bot + r + 14); }
     ctx.globalAlpha = 1;
   }
 }
@@ -464,7 +470,7 @@ function drawAlerts(tm) {
     const errs = spansAt(n).filter((s) => s.errOrigin && tm >= s.end);
     for (const s of slow) {
       const ms = Math.min(tm, s.end) - s.start;
-      const txt = `DELAY  ${fmtMs(ms)}`;
+      const txt = `${V.delay}  ${fmtMs(ms)}`;
       ctx.font = font(700, 12); const w = ctx.measureText(txt).width + 30;
       const cx = ax(w); rr(cx - w / 2, y, w, 20, 10); ctx.fillStyle = C.slow; ctx.fill();
       ctx.fillStyle = C.slowInk; ctx.beginPath(); ctx.arc(cx - w / 2 + 11, y + 10, 4, 0, 2 * Math.PI); ctx.fill();
@@ -472,7 +478,7 @@ function drawAlerts(tm) {
       y += 25;
     }
     for (const s of errs) {
-      const txt = 'SERVICE ALERT';
+      const txt = V.serviceAlert;
       const why = fitText([s.attrs && (s.attrs['http.response.status_code'] || s.attrs['http.status_code']) ? 'HTTP ' + (s.attrs['http.response.status_code'] || s.attrs['http.status_code']) : '', shortReason(s.statusMessage) || s.name].filter(Boolean).join(' · '), 170);
       ctx.font = font(700, 12); const w = Math.max(ctx.measureText(txt).width + 34, 0);
       const cx = ax(w); rr(cx - w / 2, y, w, 20, 3); ctx.fillStyle = C.err; ctx.fill();
@@ -512,7 +518,7 @@ function drawLegend() {
   }
   x = 40; y += 28;
   ctx.font = font(400, 12); ctx.fillStyle = C.ink2;
-  const key = [['train', 'request'], ['ret', 'response'], ['delay', `delay: self time ≥ ${fmtMs(SLOW_MS)}`], ['alert', 'service alert: error starts here'], ['infra', 'dotted: infrastructure (no spans of its own)']];
+  const key = [['train', V.request], ['ret', V.response], ['delay', `${V.legendDelay} ${fmtMs(SLOW_MS)}`], ['alert', V.legendAlert], ['infra', V.legendInfra]];
   ctx.font = font(700, 11); ctx.fillText('KEY', x, y); x += 50;
   for (const [k, label] of key) {
     if (k === 'train' || k === 'ret') { rr(x, y - 6, 22, 12, 6); ctx.fillStyle = k === 'train' ? C.ink : '#fff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = C.ink; if (k === 'ret') ctx.stroke(); }
@@ -557,14 +563,14 @@ function drawStrip(tm) {
 const infraHops = calls.filter((c) => nodes.get(c.to).inferred).length;
 function drawFooter() {
   ctx.font = font(400, 12); ctx.fillStyle = C.ink2; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  const syn = D.meta && D.meta.synthetic ? 'SYNTHETIC sample data  ·  ' : '';
+  const syn = D.meta && D.meta.synthetic ? `${V.synthetic}  ·  ` : '';
   const CTX = window.CONTRACTS;
-  let tail = `${calls.length - infraHops} unmatched: no contract index`;
+  let tail = `${calls.length - infraHops} ${V.unmatched}: ${V.noContractIndex}`;
   if (CTX) {
     const st = calls.filter((c) => !nodes.get(c.to).inferred).map((c) => (CTX.bySpan[c.callee.spanId] || CTX.bySpan[c.span.spanId] || {}).state);
-    tail = `${st.filter((x) => x === 'matched' || x === 'fallback').length} matched to contracts, ${st.filter((x) => x !== 'matched' && x !== 'fallback').length} unmatched`;
+    tail = `${st.filter((x) => x === 'matched' || x === 'fallback').length} ${V.matched} to ${V.contracts}, ${st.filter((x) => x !== 'matched' && x !== 'fallback').length} ${V.unmatched}`;
   }
-  ctx.fillText(`${syn}${spans.length} spans  ·  ${calls.length} hops (${infraHops} infrastructure, ${tail})  ·  rendered locally by Transit`, 40, 872);
+  ctx.fillText(`${syn}${spans.length} spans  ·  ${calls.length} ${V.hopNounPlural} (${infraHops} ${V.infrastructure}, ${tail})  ·  ${V.renderedLocally}`, 40, 872);
 }
 function renderAt(t) {
   const tm = traceMsAt(t);
@@ -586,8 +592,8 @@ window.VIZ = {
 const hopsEl = document.getElementById('hops');
 if (hopsEl) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  hopsEl.innerHTML = '<h3>Hops</h3><table><tr><th>start</th><th>from</th><th>to</th><th>span</th><th>status</th><th>contract</th></tr>' +
-    hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? 'error' : c.slow ? 'slow' : 'ok'}</td><td>${(() => { const m = window.CONTRACTS && (window.CONTRACTS.bySpan[c.callee.spanId] || window.CONTRACTS.bySpan[c.span.spanId]); if (!window.CONTRACTS) return nodes.get(c.to).inferred ? 'infrastructure hop' : 'unmatched (contracts not indexed)'; if (!m) return nodes.get(c.to).inferred ? 'infrastructure hop' : 'unmatched'; return m.state === 'unmatched' ? 'unmatched: ' + esc(m.reason) : m.state === 'infra' ? 'infrastructure hop' : esc(m.state + ' ' + m.key); })()}</td></tr>`).join('') + '</table>';
+  hopsEl.innerHTML = `<h3>${V.tableTitle}</h3><table><tr><th>${V.tableStart}</th><th>${V.tableFrom}</th><th>${V.tableTo}</th><th>${V.tableSpan}</th><th>${V.tableStatus}</th><th>${V.tableContract}</th></tr>` +
+    hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? V.error : c.slow ? V.slow : V.ok}</td><td>${(() => { const m = window.CONTRACTS && (window.CONTRACTS.bySpan[c.callee.spanId] || window.CONTRACTS.bySpan[c.span.spanId]); if (!window.CONTRACTS) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedContracts; if (!m) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedShort; return m.state === 'unmatched' ? V.unmatchedShort + ': ' + esc(m.reason) : m.state === 'infra' ? V.infrastructureHop : esc(m.state + ' ' + m.key); })()}</td></tr>`).join('') + '</table>';
 }
 // ------------------------------------------------------------------ interactive layer (never runs in render mode)
 // renderAt(t) above stays a pure function of t. Selection, speed and the panel live here and only draw an
@@ -660,11 +666,11 @@ function spanLink(s) {
   return `<a href="#span=${encodeURIComponent(s.spanId)}" data-span="${esc(s.spanId)}"><span class="dot" style="background:${(nodeFor(s) || {}).color || C.infra}"></span>${esc(s.service)} · ${esc(s.name)}</a>`;
 }
 // request / response cards
-const CONF = { high: ['#1C8F5A', 'high confidence'], medium: ['#E89A00', 'medium confidence'], low: ['#D42A1E', 'low confidence'] };
-const SRC = { zod: 'validator · zod', joi: 'validator · joi', 'class-validator': 'validator · class-validator', 'ts-types': 'type · TypeScript', openapi: 'spec · OpenAPI', protobuf: 'schema · protobuf', none: 'declared', unresolved: 'unresolved' };
+const CONF = { high: ['#1C8F5A', V.confidenceHigh], medium: ['#E89A00', V.confidenceMedium], low: ['#D42A1E', V.confidenceLow] };
+const SRC = { zod: `${V.validator} · zod`, joi: `${V.validator} · joi`, 'class-validator': `${V.validator} · class-validator`, 'ts-types': `${V.type} · TypeScript`, openapi: `${V.spec} · OpenAPI`, protobuf: `${V.schema} · protobuf`, none: V.declared, unresolved: V.unresolved };
 function typeLabel(n) {
-  if (!n) return 'unknown';
-  if (n.unresolved) return `${n.ref || 'unknown'} (unresolved)`;
+  if (!n) return V.unknown;
+  if (n.unresolved) return `${n.ref || V.unknown} (${V.unresolved})`;
   switch (n.t) {
     case 'array': return `${n.items && n.items.t === 'object' ? (n.items.ref || 'object') : typeLabel(n.items)}[]`;
     case 'enum': return n.values.map((v) => JSON.stringify(v)).join(' | ');
@@ -676,38 +682,38 @@ function typeLabel(n) {
 function fieldRows(n, depth = 0) {
   const obj = n && (n.t === 'object' ? n : n.t === 'array' && n.items && n.items.t === 'object' ? n.items : null);
   if (!obj) return '';
-  if (depth > 3) return `<div class="f" style="padding-left:${depth * 14}px"><span class="muted">… deeper fields not shown</span></div>`;
-  return obj.props.map((p) => `<div class="f" style="padding-left:${depth * 14}px"><span class="req" title="${p.optional ? 'optional' : 'required'}">${p.optional ? '○' : '●'}</span><span class="fn">${esc(p.name)}</span><span class="ft">${esc(typeLabel(p.node))}</span>${p.node && p.node.c ? `<span class="fc">${esc(p.node.c.join(', '))}</span>` : ''}</div>` + fieldRows(p.node, depth + 1)).join('');
+  if (depth > 3) return `<div class="f" style="padding-left:${depth * 14}px"><span class="muted">${V.deeperFields}</span></div>`;
+  return obj.props.map((p) => `<div class="f" style="padding-left:${depth * 14}px"><span class="req" title="${p.optional ? V.optional : V.required}">${p.optional ? '○' : '●'}</span><span class="fn">${esc(p.name)}</span><span class="ft">${esc(typeLabel(p.node))}</span>${p.node && p.node.c ? `<span class="fc">${esc(p.node.c.join(', '))}</span>` : ''}</div>` + fieldRows(p.node, depth + 1)).join('');
 }
 function card(title, side, gap) {
   if (!side) return `<div class="card gap"><div class="ch"><b>${title}</b></div><div class="cb">${esc(gap)}. Not guessed.</div></div>`;
   const [cc, cl] = CONF[side.confidence] || CONF.low;
-  const body = side.schema.t === 'void' ? '<div class="muted">no body (void)</div>'
+  const body = side.schema.t === 'void' ? `<div class="muted">${V.responseBody}</div>`
     : side.schema.t === 'object' || (side.schema.t === 'array' && side.schema.items && side.schema.items.t === 'object') ? fieldRows(side.schema)
     : `<div class="f"><span class="ft">${esc(typeLabel(side.schema))}</span></div>`;
   return `<div class="card"><div class="ch"><b>${title}</b>${side.name ? `<span class="cn">${esc(side.name)}${side.schema.t === 'array' ? '[]' : ''}</span>` : ''}<span class="conf" title="${cl}"><i style="background:${cc}"></i>${side.confidence}</span></div>` +
-    `<div class="badges"><span class="badge ${/^validator|^spec|^schema/.test(SRC[side.kind] || '') ? 'v' : 't'}">${esc(SRC[side.kind] || side.kind)}</span>${side.via ? `<span class="badge o">${esc(side.via)}</span>` : ''}${side.crossPackage ? '<span class="badge o">shared package</span>' : ''}</div>` +
+    `<div class="badges"><span class="badge ${/^validator|^spec|^schema/.test(SRC[side.kind] || '') ? 'v' : 't'}">${esc(SRC[side.kind] || side.kind)}</span>${side.via ? `<span class="badge o">${esc(side.via)}</span>` : ''}${side.crossPackage ? `<span class="badge o">${V.sharedPackage}</span>` : ''}</div>` +
     `<div class="cb">${body}</div>` +
     (side.notes && side.notes.length ? `<div class="note">${side.notes.map(esc).join('<br>')}</div>` : '') +
     (side.source ? `<div class="src">${esc(side.source)}</div>` : '') + `</div>`;
 }
 function contractSection(s) {
-  const head = '<h3>Expected request / response</h3>';
-  if (!CT) return head + `<div class="card gap"><div class="cb">Contracts not indexed. The contract layer is optional: build an index with <code>transit index</code>, then build the page with <code>--contracts</code>.</div></div>`;
+  const head = `<h3>${V.expectedRequestResponse}</h3>`;
+  if (!CT) return head + `<div class="card gap"><div class="cb">${V.contractsNotIndexed} <code>transit index</code>, ${V.thenBuildWith} <code>--contracts</code>.</div></div>`;
   const m = contractOf(s);
-  if (!m) return head + `<div class="card gap"><div class="cb">No hop contract for this span (internal work inside ${esc(s.service)}).</div></div>`;
-  if (m.state === 'infra') return head + `<div class="card infra"><div class="ch"><b>Infrastructure hop</b><span class="cn">${esc(m.key)}</span></div><div class="cb">${esc(m.reason)}. No contract expected.</div></div>`;
-  if (m.state === 'unmatched') return head + `<div class="card gap"><div class="ch"><b>Unmatched</b><span class="cn">${esc(m.key)}</span></div><div class="cb">${esc(m.reason)}.</div></div>`;
+  if (!m) return head + `<div class="card gap"><div class="cb">${V.noHopContract} (${V.internalWorkInside} ${esc(s.service)}).</div></div>`;
+  if (m.state === 'infra') return head + `<div class="card infra"><div class="ch"><b>${V.infrastructureHopTitle}</b><span class="cn">${esc(m.key)}</span></div><div class="cb">${esc(m.reason)}. ${V.noContractExpected}.</div></div>`;
+  if (m.state === 'unmatched') return head + `<div class="card gap"><div class="ch"><b>${V.unmatchedShort}</b><span class="cn">${esc(m.key)}</span></div><div class="cb">${esc(m.reason)}.</div></div>`;
   const e = ENTRY.get(m.entryId);
-  return head + `<div class="match"><span class="tag ${m.state === 'fallback' ? 'slow' : 'ok'}">${m.state === 'fallback' ? 'FALLBACK' : 'MATCHED'}</span> ${esc(m.key)} <span class="muted">→ ${esc(e.service)} · ${esc(e.extractor)}</span><div class="src">${esc(e.source)}</div>${m.reason ? `<div class="note">${esc(m.reason)}</div>` : ''}</div>` +
-    card(e.kind === 'topic' ? 'Message' : 'Request', e.request, 'No request schema found') +
-    (e.kind === 'topic' ? '' : card('Response', e.response, 'No response type found'));
+  return head + `<div class="match"><span class="tag ${m.state === 'fallback' ? 'slow' : 'ok'}">${m.state === 'fallback' ? V.fallback : V.matchedTag}</span> ${esc(m.key)} <span class="muted">→ ${esc(e.service)} · ${esc(e.extractor)}</span><div class="src">${esc(e.source)}</div>${m.reason ? `<div class="note">${esc(m.reason)}</div>` : ''}</div>` +
+    card(e.kind === 'topic' ? V.message : V.request, e.request, V.noRequestSchema) +
+    (e.kind === 'topic' ? '' : card(V.response, e.response, V.noResponseType));
 }
 // attributes, grouped; the long tail of each group folds away
-const GROUPS = [['HTTP', /^(http|url)\./], ['DB', /^db\./], ['Messaging', /^(messaging|kafka)\./], ['RPC', /^rpc\./], ['Other', /./]];
+const GROUPS = [[V.groups.http, /^(http|url)\./], [V.groups.db, /^db\./], [V.groups.messaging, /^(messaging|kafka)\./], [V.groups.rpc, /^rpc\./], [V.groups.other, /./]];
 function attrGroups(s) {
   const all = Object.entries(s.attrs || {}).sort(([a], [b]) => (a < b ? -1 : 1));
-  if (!all.length) return '<p class="muted">none</p>';
+  if (!all.length) return `<p class="muted">${V.none}</p>`;
   const used = new Set();
   return GROUPS.map(([g, re]) => {
     const rows = all.filter(([k]) => !used.has(k) && re.test(k)); rows.forEach(([k]) => used.add(k));
@@ -738,12 +744,12 @@ function waterfall(m) {
   const pct = (x) => (100 * (clamp(x, a, b) - a) / w).toFixed(3) + '%';
   const col = (m.node || {}).color || C.ink;
   const kidsIv = kids.get(s.spanId).map((k) => [Math.max(k.start, s.start), Math.min(k.end, s.end)]).filter((x) => x[1] > x[0]);
-  const winLabel = m.client && m.server ? `client call from ${esc(m.client.service)} · ${fmtMs(m.client.duration)}` : win ? `in ${esc(win.service)} · ${fmtMs(win.duration)}` : `of the whole trace · ${fmtMs(TOTAL)}`;
-  return `<div class="wf" title="${m.server && m.client ? 'server span inside the client call' : 'span inside its parent'}">` +
+  const winLabel = m.client && m.server ? `${V.clientCallFrom} ${esc(m.client.service)} · ${fmtMs(m.client.duration)}` : win ? `${V.in} ${esc(win.service)} · ${fmtMs(win.duration)}` : `${V.wholeTrace} · ${fmtMs(TOTAL)}`;
+  return `<div class="wf" title="${m.server && m.client ? V.spanInsideClient : V.spanInsideParent}">` +
     `<div class="wf-parent"></div>` +
     `<div class="wf-span" style="left:${pct(s.start)};width:calc(${pct(s.end)} - ${pct(s.start)});background:${col}">` +
     kidsIv.map(([x, y]) => `<i style="left:${(100 * (x - s.start) / (s.duration || 1)).toFixed(3)}%;width:${(100 * (y - x) / (s.duration || 1)).toFixed(3)}%"></i>`).join('') + `</div></div>` +
-    `<div class="wf-cap"><span>${winLabel}</span><span>${m.server && m.client ? 'server ' : ''}<b>${fmtMs(s.duration)}</b> · self <b>${fmtMs(s.self)}</b></span></div>`;
+    `<div class="wf-cap"><span>${winLabel}</span><span>${m.server && m.client ? V.server + ' ' : ''}<b>${fmtMs(s.duration)}</b> · ${V.self} <b>${fmtMs(s.self)}</b></span></div>`;
 }
 // breadcrumb: root to the station, one stop per service change; an infrastructure station is the last stop
 function breadcrumb(m) {
@@ -757,29 +763,29 @@ function breadcrumb(m) {
   return `<div class="crumbs">${html.join('<span class="seg"></span>')}</div>`;
 }
 function renderPanel() {
-  if (!sel) { panel.innerHTML = `<div class="sign"><div class="st"><span class="sn">Transit</span></div><div class="sub">no hop selected</div></div><div class="pbody" tabindex="0"><div class="empty"><p>Pause, press <kbd>N</kbd>, or click a station, train or line to inspect a hop.</p></div><h3>Shortcuts</h3>` + document.querySelector('#help table').outerHTML + '</div>'; return; }
+  if (!sel) { panel.innerHTML = `<div class="sign"><div class="st"><span class="sn">${V.transit}</span></div><div class="sub">${V.noHopSelected}</div></div><div class="pbody" tabindex="0"><div class="empty"><p>${V.inspectHop} <kbd>N</kbd>, ${V.or} ${V.inspectClick} ${V.inspectTail}</p></div><h3>${V.shortcuts}</h3>` + document.querySelector('#help table').outerHTML + '</div>'; return; }
   const m = hopModel(sel), s = m.main, n = m.node;
   const ch = kids.get(s.spanId).slice().sort((a, b) => a.start - b.start);
   const stat = (k, v) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`;
-  const timing = (label, x, self) => `<div class="trow"><div class="tl">${label}</div><div class="stats">${stat('kind', esc(KIND(x.kind)))}${stat('start', '+' + fmtMs(x.start))}${stat('duration', fmtMs(x.duration))}${self ? stat('self', fmtMs(x.self) + (x.slow ? ' <span class="tag slow">DELAY</span>' : '')) : stat('span', `<span class="mono">${esc(x.spanId.slice(0, 8))}</span>`)}</div></div>`;
+  const timing = (label, x, self) => `<div class="trow"><div class="tl">${label}</div><div class="stats">${stat(V.kind, esc(KIND(x.kind)))}${stat(V.start, '+' + fmtMs(x.start))}${stat(V.duration, fmtMs(x.duration))}${self ? stat(V.self, fmtMs(x.self) + (x.slow ? ` <span class="tag slow">${V.delay}</span>` : '')) : stat(V.span, `<span class="mono">${esc(x.spanId.slice(0, 8))}</span>`)}</div></div>`;
   const errSpan = [m.server, m.client].filter(Boolean).find((x) => x.status === 'error');
   const fromNode = m.c && nodes.get(m.c.from);
   panel.innerHTML =
-    `<div class="sign"><div class="st">${bulletHtml(n, 26)}<span class="sn">${esc(n ? n.id : s.service)}</span><button id="pclose" title="Deselect (Esc)">×</button></div>` +
-    `<div class="sub">${m.c ? `HOP ${m.index + 1} / ${hops.length} · from ${bulletHtml(fromNode, 14)} ${esc(m.c.from)}` : 'SPAN (no hop)'}${m.infra ? ' · infrastructure' : ''}</div></div>` +
+    `<div class="sign"><div class="st">${bulletHtml(n, 26)}<span class="sn">${esc(n ? n.id : s.service)}</span><button id="pclose" title="${V.deselect}">×</button></div>` +
+    `<div class="sub">${m.c ? `${V.hop.toUpperCase()} ${m.index + 1} / ${hops.length} · ${V.from} ${bulletHtml(fromNode, 14)} ${esc(m.c.from)}` : `${V.span} (no ${V.hopNoun})`}${m.infra ? ` · ${V.infrastructure}` : ''}</div></div>` +
     `<div class="pbody" tabindex="0">` +
     `<h2>${esc(s.name)}</h2>` +
     breadcrumb(m) +
     waterfall(m) +
-    (m.client && m.server ? timing(`client · ${esc(m.client.service)}`, m.client, false) + timing(`server · ${esc(m.server.service)}`, m.server, true)
-      : m.infra ? timing(`client · ${esc(m.client.service)} (no server span: ${esc(n.id)} is not instrumented)`, m.client, true)
+    (m.client && m.server ? timing(`${V.client} · ${esc(m.client.service)}`, m.client, false) + timing(`${V.server} · ${esc(m.server.service)}`, m.server, true)
+      : m.infra ? timing(`${V.client} · ${esc(m.client.service)} (${V.noServerSpan}: ${esc(n.id)} ${V.notInstrumented})`, m.client, true)
       : timing(m.c ? `${esc(KIND(s.kind))} · ${esc(s.service)}` : esc(s.service), s, true)) +
-    `<div class="status ${errSpan ? 'err' : ''}">${errSpan ? `<span class="tag err">SERVICE ALERT</span> ${esc(errSpan.statusMessage || 'error')} <span class="muted">(${errSpan === m.server ? 'server' : 'client'} span)</span>` : `status <b>${esc(s.status || 'unset')}</b>`}${s.resource && s.resource !== s.name ? ` · resource <b>${esc(s.resource)}</b>` : ''}</div>` +
+    `<div class="status ${errSpan ? 'err' : ''}">${errSpan ? `<span class="tag err">${V.serviceAlert}</span> ${esc(errSpan.statusMessage || V.error)} <span class="muted">(${errSpan === m.server ? V.server : V.client} ${V.span})</span>` : `${V.status} <b>${esc(s.status || V.unset)}</b>`}${s.resource && s.resource !== s.name ? ` · ${V.resource} <b>${esc(s.resource)}</b>` : ''}</div>` +
     contractSection(s) +
-    `<h3>Attributes${m.client && m.server ? ' · server span' : ''}</h3>` + attrGroups(s) +
-    (m.client && m.server && m.client.attrs ? `<details class="client-attrs"><summary>Client span attributes (${esc(m.client.service)})</summary>${attrGroups(m.client)}</details>` : '') +
-    `<p class="muted">${D.meta && D.meta.redacted ? `${D.meta.redacted} attribute(s) redacted across this trace before rendering.` : 'Sensitive-looking keys are redacted at build time.'}</p>` +
-    `<h3>Children (${ch.length})</h3>${ch.length ? '<ul>' + ch.map((k) => `<li>${spanLink(k)}</li>`).join('') + '</ul>' : '<p class="muted">none</p>'}` +
+    `<h3>${V.attributes}${m.client && m.server ? ` · ${V.serverSpan}` : ''}</h3>` + attrGroups(s) +
+    (m.client && m.server && m.client.attrs ? `<details class="client-attrs"><summary>${V.client} ${V.span} ${V.attributes.toLowerCase()} (${esc(m.client.service)})</summary>${attrGroups(m.client)}</details>` : '') +
+    `<p class="muted">${D.meta && D.meta.redacted ? `${D.meta.redacted} ${V.redactedAcross}` : V.sensitiveRedacted}</p>` +
+    `<h3>${V.children} (${ch.length})</h3>${ch.length ? '<ul>' + ch.map((k) => `<li>${spanLink(k)}</li>`).join('') + '</ul>' : `<p class="muted">${V.none}</p>`}` +
     `<p class="muted mono">${m.client ? `client span ${esc(m.client.spanId)}<br>` : ''}${m.server ? `server span ${esc(m.server.spanId)}` : m.client ? '' : `span ${esc(s.spanId)}`}</p>` +
     `</div>`;
 }
