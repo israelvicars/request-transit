@@ -162,6 +162,7 @@ if (document.fonts && document.fonts.load) { document.fonts.load(font(400, 14));
 const D = window.TRACE, OPT = window.VIZ_OPTS || {};
 const REQUEST_VOCAB = { lineNoun: 'service', stationNoun: 'hop', hopNoun: 'hop', hopNounPlural: 'hops', play: 'Play', pause: 'Pause', helpTitle: 'Keyboard shortcuts', space: 'play / pause', nextHop: 'next hop', previousHop: 'previous hop', seek: 'seek 0.5 s', frame: 'step one frame', startEnd: 'start / end', speed: 'speed 0.5x / 1x / 2x', click: 'click', clickHelp: 'station, train or line: select that hop', inspectClick: 'click a station, train or line', pauseHelp: 'selects the hop in progress', escape: 'deselect / close', help: 'this help', of: 'of', video: '1 s of video', trace: 'trace', infrastructure: 'infrastructure', delay: 'DELAY', serviceAlert: 'SERVICE ALERT', request: 'request', response: 'response', legendDelay: 'delay: self time ≥', legendAlert: 'service alert: error starts here', legendInfra: 'dotted: infrastructure (no spans of its own)', synthetic: 'SYNTHETIC sample data', renderedLocally: 'rendered locally by Transit', unmatched: 'unmatched', matched: 'matched', contracts: 'contracts', noContractIndex: 'no contract index', error: 'error', slow: 'slow', ok: 'ok', tableTitle: 'Hops', tableStart: 'start', tableFrom: 'from', tableTo: 'to', tableSpan: 'span', tableStatus: 'status', tableContract: 'contract', infrastructureHop: 'infrastructure hop', infrastructureHopTitle: 'Infrastructure hop', unmatchedContracts: 'unmatched (contracts not indexed)', unmatchedShort: 'unmatched', noHopSelected: 'no hop selected', inspectHop: 'Pause, press', or: 'or', inspectTail: 'to inspect a hop.', shortcuts: 'Shortcuts', transit: 'Transit', hop: 'HOP', span: 'SPAN', from: 'from', client: 'client', server: 'server', noServerSpan: 'no server span', notInstrumented: 'is not instrumented', status: 'status', unset: 'unset', resource: 'resource', attributes: 'Attributes', serverSpan: 'server span', children: 'Children', none: 'none', sensitiveRedacted: 'Sensitive-looking keys are redacted at build time.', redactedAcross: 'attribute(s) redacted across this trace before rendering.', expectedRequestResponse: 'Expected request / response', contractsNotIndexed: 'Contracts not indexed. The contract layer is optional: build an index with', thenBuildWith: 'then build the page with', noHopContract: 'No hop contract for this span', internalWorkInside: 'internal work inside', noContractExpected: 'No contract expected', fallback: 'FALLBACK', matchedTag: 'MATCHED', message: 'Message', noRequestSchema: 'No request schema found', noResponseType: 'No response type found', responseBody: 'no body (void)', unknown: 'unknown', unresolved: 'unresolved', deeperFields: '… deeper fields not shown', optional: 'optional', required: 'required', sharedPackage: 'shared package', declared: 'declared', clientCallFrom: 'client call from', in: 'in', wholeTrace: 'of the whole trace', spanInsideClient: 'server span inside the client call', spanInsideParent: 'span inside its parent', deselect: 'Deselect (Esc)', more: 'more', confidenceHigh: 'high confidence', confidenceMedium: 'medium confidence', confidenceLow: 'low confidence', validator: 'validator', type: 'type', spec: 'spec', schema: 'schema', kind: 'kind', start: 'start', duration: 'duration', self: 'self', groups: { http: 'HTTP', db: 'DB', messaging: 'Messaging', rpc: 'RPC', other: 'Other' } };
 const V = Object.assign({}, REQUEST_VOCAB, OPT.vocab || {});
+const CI_STEPS = OPT.ciStepsAsStations === true;
 document.querySelectorAll('[data-vocab]').forEach((el) => { el.textContent = V[el.dataset.vocab] ?? el.dataset.vocab; });
 document.querySelector('#help h3').textContent = V.helpTitle;
 const playButton = document.getElementById('play');
@@ -180,6 +181,7 @@ for (const s of spans) {
   for (const [a, b] of iv) { if (a > ce) { if (ce > cs) cov += ce - cs; cs = a; ce = b; } else ce = Math.max(ce, b); }
   if (ce > cs) cov += ce - cs;
   s.self = s.duration - cov;
+  if (CI_STEPS && s.attrs && s.attrs['ci.step.number'] != null) s.self = s.duration;
 }
 const SLOW_MS = OPT.slowMs != null ? OPT.slowMs : Math.max(100, Math.round(0.25 * TOTAL / 10) * 10);
 for (const s of spans) { s.slow = s.self >= SLOW_MS; s.slowAt = s.start + SLOW_MS; }
@@ -197,12 +199,12 @@ const MIN_LEG = MIN_TRAVEL * MS_PER_SEC;
 
 // nodes and calls
 const nodes = new Map();
-function addNode(id, inferred, t) {
-  if (!nodes.has(id)) nodes.set(id, { id, inferred, first: t });
+function addNode(id, inferred, t, span) {
+  if (!nodes.has(id)) nodes.set(id, { id, inferred, first: t, lineId: CI_STEPS && span && span.attrs && span.attrs['ci.job'] || id, label: CI_STEPS && span && span.attrs && span.attrs['ci.step.name'] || id, ciStep: CI_STEPS && !!(span && span.attrs && span.attrs['ci.step.number'] != null) });
   else nodes.get(id).first = Math.min(nodes.get(id).first, t);
   return nodes.get(id);
 }
-for (const s of spans) addNode(s.service, false, s.start);
+for (const s of spans) addNode(s.service, false, s.start, s);
 const crossKids = (s) => kids.get(s.spanId).filter((c) => c.service !== s.service);
 const calls = [];
 let skewFixes = 0;
@@ -235,9 +237,9 @@ for (const s of spans) {
 function subtree(s, svc, out) { out.push(s); for (const k of kids.get(s.spanId)) if (k.service === svc) subtree(k, svc, out); return out; }
 for (const c of calls) {
   const sub = c.callee === c.span ? [c.span] : subtree(c.callee, c.callee.service, []);
-  const slowS = sub.filter((x) => x.slow).sort((a, b) => a.slowAt - b.slowAt)[0];
+  const slowS = sub.filter((x) => x.slow && (!CI_STEPS || x.attrs && x.attrs['ci.step.number'] != null)).sort((a, b) => a.slowAt - b.slowAt)[0];
   c.slow = !!slowS; c.slowAt = slowS ? slowS.slowAt : Infinity;
-  const errS = [c.span, c.callee].filter((x) => x.status === 'error');   // this call failed (not just something below it)
+  const errS = [c.span, c.callee].filter((x) => x.status === 'error' && (!CI_STEPS || x.attrs && x.attrs['ci.step.number'] != null));   // this call failed (not just something below it)
   c.error = errS.length > 0; c.errorAt = c.error ? Math.min(...errS.map((x) => x.end)) : Infinity;
   const dur = c.end - c.start;
   c.outT = c.oneWay ? Math.min(MIN_LEG, Math.max(dur * 0.4, 0)) : Math.max(c.arrive - c.start, Math.min(MIN_LEG, dur * 0.4));
@@ -310,7 +312,9 @@ for (const e of edges.values()) {
 
 // ------------------------------------------------------------------ lines, bullets, geometry
 const svcOrder = order.filter((n) => !n.inferred);
-svcOrder.forEach((n, i) => { n.color = LINE_COLORS[i % LINE_COLORS.length]; n.bullet = i < 26 ? String.fromCharCode(65 + i) : String(i - 25); });
+const lineKeys = [];
+for (const n of svcOrder) if (!lineKeys.includes(n.lineId)) lineKeys.push(n.lineId);
+svcOrder.forEach((n) => { const i = lineKeys.indexOf(n.lineId); n.color = LINE_COLORS[i % LINE_COLORS.length]; n.bullet = i < 26 ? String.fromCharCode(65 + i) : String(i - 25); });
 order.filter((n) => n.inferred).forEach((n) => { n.color = C.infra; n.bullet = null; });
 const SP = 10, LW = 7, H = 26, RAD = 14;
 const laneOffset = (l) => (l === 0 ? 0 : (l % 2 ? 1 : -1) * Math.ceil(l / 2) * 13);
@@ -442,7 +446,7 @@ function drawStations(tm) {
     // label: bullet + name above the station
     const ly = n.y + n.top - r - 10;
     ctx.font = font(700, 15); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-    const name = fitText(n.id, 150), w = ctx.measureText(name).width;
+    const name = fitText(n.label || n.id, 150), w = ctx.measureText(name).width;
     const bx = n.x - (w + 22) / 2;
     ctx.globalAlpha = visited ? 1 : 0.35;
     bullet(bx + 8, ly - 5, 8, n);
@@ -462,11 +466,12 @@ function shortReason(m) {
 function drawAlerts(tm) {
   for (const n of order) {
     // leaf stations: markers sit to the right, on the station's own row; otherwise below the station
-    const right = outE.get(n.id).length === 0;
+    const right = outE.get(n.id).length === 0 && !(CI_STEPS && n.x > 820);
     let y = right ? n.y - 10 : n.y + n.bot + 9 + (n.inferred ? 20 : 8);
     const ax = (w) => right ? n.x + 18 + w / 2 : n.x;
-    const slow = spansAt(n).filter((s) => s.slow && tm >= s.slowAt);
-    const errs = spansAt(n).filter((s) => s.errOrigin && tm >= s.end);
+    const ciStep = (s) => !CI_STEPS || s.attrs && s.attrs['ci.step.number'] != null;
+    const slow = spansAt(n).filter((s) => ciStep(s) && s.slow && tm >= s.slowAt);
+    const errs = spansAt(n).filter((s) => ciStep(s) && s.errOrigin && tm >= s.end);
     for (const s of slow) {
       const ms = Math.min(tm, s.end) - s.start;
       const txt = `${V.delay}  ${fmtMs(ms)}`;
@@ -508,11 +513,13 @@ function drawLegend() {
   let x = 40, y = 616;
   ctx.font = font(700, 11); ctx.fillStyle = C.ink2; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.fillText('LINES', x, y); x += 50;
-  for (const n of order) {
-    ctx.font = font(400, 13); const w = ctx.measureText(n.id).width + 34;
+  const legendNodes = CI_STEPS ? lineKeys.map((key) => order.find((n) => n.lineId === key)).filter(Boolean) : order;
+  for (const n of legendNodes) {
+    const legendLabel = n.label || n.id;
+    ctx.font = font(400, 13); const w = ctx.measureText(legendLabel).width + 34;
     if (x + w > 1170) { x = 90; y += 26; }
     bullet(x + 9, y, 9, n);
-    ctx.fillStyle = C.ink; ctx.font = font(400, 13); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(n.id, x + 23, y + 1);
+    ctx.fillStyle = C.ink; ctx.font = font(400, 13); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(legendLabel, x + 23, y + 1);
     x += w + 8;
   }
   x = 40; y += 28;
@@ -542,7 +549,7 @@ function drawStrip(tm) {
   if (tm > 0) { ctx.strokeStyle = C.ink; ctx.beginPath(); ctx.moveTo(SX0, SY); ctx.lineTo(px, SY); ctx.stroke(); }
   // slow and error spans as segments under the line
   for (const s of spans) {
-    if (s.slow) { const a = sx(s.start), b = sx(Math.min(s.end, Math.max(s.start, tm))); ctx.fillStyle = C.slow; ctx.fillRect(a, SY + 9, Math.max(2, b - a), 5); }
+    if (s.slow && (!CI_STEPS || s.attrs && s.attrs['ci.step.number'] != null)) { const a = sx(s.start), b = sx(Math.min(s.end, Math.max(s.start, tm))); ctx.fillStyle = C.slow; ctx.fillRect(a, SY + 9, Math.max(2, b - a), 5); }
   }
   const seen = new Set(); let lastLab = -1e9;
   ctx.textAlign = 'center';
@@ -583,7 +590,7 @@ window.VIZ = {
   seconds: SECONDS, fps: FPS, intro: INTRO, msPerSec: MS_PER_SEC, total: TOTAL, slowMs: SLOW_MS,
   frameOfTraceMs: (ms) => Math.ceil((INTRO + ms / MS_PER_SEC) * FPS - 1e-6),
   calls: calls.map((c) => ({ from: c.from, to: c.to, start: c.start, end: c.end, slow: c.slow, error: c.error, spanId: c.span.spanId, name: c.span.name, infra: nodes.get(c.to).inferred })),
-  nodes: order.map((n) => ({ id: n.id, x: n.x, y: n.y, color: n.color, bullet: n.bullet, inferred: !!n.inferred, transfer: n.transfer })),
+  nodes: order.map((n) => ({ id: n.id, label: n.label, lineId: n.lineId, ciStep: !!n.ciStep, x: n.x, y: n.y, color: n.color, bullet: n.bullet, inferred: !!n.inferred, transfer: n.transfer })),
   trainsAt: (t) => calls.map((c) => trainFor(c, traceMsAt(t))).filter(Boolean).map((r) => ({ from: r.c.from, to: r.c.to, spanId: r.c.span.spanId, back: r.back })),
   skewFixes,
 };
@@ -591,8 +598,13 @@ window.VIZ = {
 const hopsEl = document.getElementById('hops');
 if (hopsEl) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  hopsEl.innerHTML = `<h3>${V.tableTitle}</h3><table><tr><th>${V.tableStart}</th><th>${V.tableFrom}</th><th>${V.tableTo}</th><th>${V.tableSpan}</th><th>${V.tableStatus}</th><th>${V.tableContract}</th></tr>` +
-    hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? V.error : c.slow ? V.slow : V.ok}</td><td>${(() => { const m = window.CONTRACTS && (window.CONTRACTS.bySpan[c.callee.spanId] || window.CONTRACTS.bySpan[c.span.spanId]); if (!window.CONTRACTS) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedContracts; if (!m) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedShort; return m.state === 'unmatched' ? V.unmatchedShort + ': ' + esc(m.reason) : m.state === 'infra' ? V.infrastructureHop : esc(m.state + ' ' + m.key); })()}</td></tr>`).join('') + '</table>';
+  hopsEl.innerHTML = (CI_STEPS
+    ? (() => {
+      const stepSpans = spans.filter((s) => s.attrs && s.attrs['ci.step.number'] != null).sort((a, b) => a.start - b.start || String(a.spanId).localeCompare(String(b.spanId)));
+      return `<h3>${V.tableTitle}</h3><table><tr><th>${V.tableStart}</th><th>${V.lineNoun}</th><th>${V.tableSpan}</th><th>${V.tableStatus}</th></tr>` + stepSpans.map((s) => `<tr data-ci-step="${esc(s.spanId)}"><td>${fmtMs(s.start)}</td><td>${esc(s.attrs['ci.job'])}</td><td>${esc(s.name)}</td><td>${s.status === 'error' ? V.error : s.slow ? V.slow : V.ok}</td></tr>`).join('') + '</table>';
+    })()
+    : `<h3>${V.tableTitle}</h3><table><tr><th>${V.tableStart}</th><th>${V.tableFrom}</th><th>${V.tableTo}</th><th>${V.tableSpan}</th><th>${V.tableStatus}</th><th>${V.tableContract}</th></tr>` +
+      hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? V.error : c.slow ? V.slow : V.ok}</td><td>${(() => { const m = window.CONTRACTS && (window.CONTRACTS.bySpan[c.callee.spanId] || window.CONTRACTS.bySpan[c.span.spanId]); if (!window.CONTRACTS) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedContracts; if (!m) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedShort; return m.state === 'unmatched' ? V.unmatchedShort + ': ' + esc(m.reason) : m.state === 'infra' ? V.infrastructureHop : esc(m.state + ' ' + m.key); })()}</td></tr>`).join('') + '</table>');
 }
 // ------------------------------------------------------------------ interactive layer (never runs in render mode)
 // renderAt(t) above stays a pure function of t. Selection, speed and the panel live here and only draw an

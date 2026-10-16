@@ -31,11 +31,14 @@ export function normalizeGh(doc) {
     const conclusion = j.conclusion || j.status;
     const end = conclusion === 'skipped' ? start : (ns(j.completedAt) ?? start);
     add({ spanId: jobId, parentId: rootId, service: j.name, name: j.name, startNs: start, endNs: end, status: statusFor(conclusion), kind: 'internal', statusMessage: conclusion === 'failure' ? `job failed: ${j.name}` : conclusion === 'cancelled' ? `job cancelled: ${j.name}` : undefined, attrs: { 'ci.job': j.name, 'ci.conclusion': conclusion, 'ci.needs': (doc.needs && doc.needs[j.name]) || [], 'ci.attempt': doc.attempt, 'ci.branch': doc.headBranch, 'ci.event': doc.event } });
-    for (const st of j.steps || []) {
+    let previousStepId = jobId;
+    for (const [stepIndex, st] of (j.steps || []).entries()) {
       const startNs = ns(st.startedAt), endNs = ns(st.completedAt);
       if (startNs == null || endNs == null) { warnings.push(`step ${j.name}/${st.name} is missing startedAt or completedAt; skipped`); continue; }
       const conclusion = st.conclusion || st.status;
-      add({ spanId: id(`${jobId}-step`, st.number || st.name), parentId: jobId, service: j.name, name: st.name, startNs, endNs: conclusion === 'skipped' ? startNs : endNs, status: statusFor(conclusion), kind: 'internal', statusMessage: conclusion === 'failure' ? `step failed: ${st.name}` : conclusion === 'cancelled' ? `step cancelled: ${st.name}` : undefined, attrs: { 'ci.job': j.name, 'ci.step.number': st.number, 'ci.conclusion': conclusion, 'ci.attempt': doc.attempt, 'ci.branch': doc.headBranch, 'ci.event': doc.event } });
+      const stepId = id(`${jobId}-step`, st.number || stepIndex + 1);
+      add({ spanId: stepId, parentId: previousStepId, service: stepId, name: st.name, startNs, endNs: conclusion === 'skipped' ? startNs : endNs, status: statusFor(conclusion), kind: 'internal', statusMessage: conclusion === 'failure' ? `step failed: ${st.name}` : conclusion === 'cancelled' ? `step cancelled: ${st.name}` : undefined, attrs: { 'ci.job': j.name, 'ci.step.name': st.name, 'ci.step.number': st.number ?? stepIndex + 1, 'ci.conclusion': conclusion, 'ci.attempt': doc.attempt, 'ci.branch': doc.headBranch, 'ci.event': doc.event } });
+      previousStepId = stepId;
     }
   }
   const t0 = spanData.reduce((m, s) => s.startNs < m ? s.startNs : m, spanData[0].startNs);

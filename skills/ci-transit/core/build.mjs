@@ -45,6 +45,7 @@ export function build(file, opt = {}) {
   if (opt['slow-ms']) vizOpts.slowMs = Number(opt['slow-ms']);
   if (opt['ms-per-sec']) vizOpts.msPerSec = Number(opt['ms-per-sec']);
   if (opt['target-seconds']) vizOpts.targetSeconds = Number(opt['target-seconds']);
+  if (adapter.format === 'gh-actions') vizOpts.ciStepsAsStations = true;
   vizOpts.vocab = resolveVocab(opt.vocab || (adapter.format === 'gh-actions' ? 'ci' : adapter.format && ['claude-code', 'codex', 'cursor'].includes(adapter.format) ? 'agent' : undefined));
   // contracts are opt-in: only an explicit --contracts [index.json] reads an index, and it never builds one
   let contracts = null;
