@@ -38,13 +38,13 @@ rmSync(runB, { recursive: true, force: true });
 const browser = await launchBrowser(); const page = await browser.newPage();
 await page.goto(pathToFileURL(join(dir, 'transit.html')).href + '?paused=1');
 const V = await page.evaluate(() => ({ ...window.VIZ, trainsAt: undefined, frameOfTraceMs: undefined }));
-let bad = 0;
-for (const c of V.calls) {
+let bad = 0; const zero = V.calls.filter((c) => !(c.end > c.start)).length;   // zero-duration calls (e.g. skipped CI jobs) have no train
+for (const c of V.calls.filter((c) => c.end > c.start)) {
   const f = await page.evaluate((ms) => window.VIZ.frameOfTraceMs(ms), c.start);
   const on = async (fr) => (await page.evaluate((t) => window.VIZ.trainsAt(t), fr / V.fps)).some((x) => x.spanId === c.spanId && !x.back);
   if (!(await on(f)) || (f > 0 && await on(f - 1))) bad++;
 }
-ok(bad === 0, `timing: ${V.calls.length} trains each leave on the frame of their span start (${bad} off)`);
+ok(bad === 0, `timing: ${V.calls.length - zero} trains each leave on the frame of their span start (${bad} off${zero ? `, ${zero} zero-duration skipped` : ''})`);
 await browser.close();
 
 // 3. ffmpeg gates

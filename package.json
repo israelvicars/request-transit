@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Transit: a public transit map for your requests. Animates one trace (OpenTelemetry or Datadog) as a subway map.",
   "scripts": {
-    "test": "node skills/request-transit/scripts/test-normalize.mjs && node skills/request-transit/scripts/test-contracts.mjs && node core/test-vocab.mjs && node scripts/build-plugin-skill.mjs --check",
+    "test": "node skills/request-transit/scripts/test-normalize.mjs && node skills/request-transit/scripts/test-contracts.mjs && node core/test-vocab.mjs && node skills/ci-transit/scripts/test-gh.mjs && node scripts/build-plugin-skill.mjs --check",
     "build": "node core/build.mjs skills/request-transit/samples/otel-demo-checkout.otlp.json --out out/otel/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
     "build:dd": "node core/build.mjs skills/request-transit/samples/datadog-sample.json --out out/dd/transit.html --title \"Order create, from a Datadog-shaped trace\" --subtitle \"Fictional services  ·  SYNTHETIC hand-made sample in Datadog span JSON shape\"",
     "render": "node core/render.mjs skills/request-transit/samples/otel-demo-checkout.otlp.json --name otel --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC hand-built trace in OTLP JSON shape\"",
@@ -22,6 +22,9 @@
     "verify:xray": "node core/verify.mjs skills/request-transit/samples/xray-checkout.json --name xray --title \"Checkout, from an AWS X-Ray trace\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC sample in AWS X-Ray BatchGetTraces shape\"",
     "index:example": "node skills/request-transit/scripts/transit.mjs index --config skills/request-transit/examples/astronomy-shop/transit.config.json --print",
     "build:contracts": "node core/build.mjs skills/request-transit/samples/otel-demo-checkout.otlp.json --contracts --out out/otel-contracts/transit.html --title \"Checkout: one order through the Astronomy Shop\" --subtitle \"OpenTelemetry Demo service names  ·  SYNTHETIC trace + SYNTHETIC example code in skills/request-transit/examples/astronomy-shop\""
+    ,"build:ci": "node core/build.mjs skills/ci-transit/samples/gh-run-sample.json --format gh-actions --out out/ci/transit.html --title \"CI: one run of a fictional repo's pipeline\" --subtitle \"GitHub Actions pipeline  ·  SYNTHETIC hand-built run\""
+    ,"render:ci": "node core/render.mjs skills/ci-transit/samples/gh-run-sample.json --format gh-actions --name ci --title \"CI: one run of a fictional repo's pipeline\" --subtitle \"GitHub Actions pipeline  ·  SYNTHETIC hand-built run\""
+    ,"verify:ci": "node core/verify.mjs skills/ci-transit/samples/gh-run-sample.json --format gh-actions --name ci --title \"CI: one run of a fictional repo's pipeline\" --subtitle \"GitHub Actions pipeline  ·  SYNTHETIC hand-built run\""
   },
   "license": "MIT",
   "bin": {

@@ -7,7 +7,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normalize } from '../skills/request-transit/adapters/normalize.mjs';
+import { parseJsonSafe } from '../skills/request-transit/adapters/normalize.mjs';
+import { pickAdapter } from './adapters.mjs';
 import { existsSync } from 'node:fs';
 import { matchTrace } from '../skills/request-transit/contracts/match.mjs';
 import { resolveVocab } from './vocab.mjs';
@@ -29,7 +30,10 @@ export function redact(trace, keys = [], useDefault = true) {
 }
 
 export function build(file, opt = {}) {
-  const trace = normalize(readFileSync(file, 'utf8'), { format: opt.format, traceId: opt['trace-id'] });
+  const input = readFileSync(file, 'utf8');
+  const doc = parseJsonSafe(input);
+  const adapter = pickAdapter(doc, opt.format);
+  const trace = adapter.normalize(doc, { format: adapter.format, traceId: opt['trace-id'] });
   redact(trace, opt.redact ? String(opt.redact).split(',') : [], !opt['no-default-redact']);
   const vizOpts = {};
   if (opt.title) vizOpts.title = opt.title;
@@ -37,7 +41,7 @@ export function build(file, opt = {}) {
   if (opt['slow-ms']) vizOpts.slowMs = Number(opt['slow-ms']);
   if (opt['ms-per-sec']) vizOpts.msPerSec = Number(opt['ms-per-sec']);
   if (opt['target-seconds']) vizOpts.targetSeconds = Number(opt['target-seconds']);
-  vizOpts.vocab = resolveVocab(opt.vocab);
+  vizOpts.vocab = resolveVocab(opt.vocab || (adapter.format === 'gh-actions' ? 'ci' : undefined));
   // contracts are opt-in: only an explicit --contracts [index.json] reads an index, and it never builds one
   let contracts = null;
   if (opt.contracts) {

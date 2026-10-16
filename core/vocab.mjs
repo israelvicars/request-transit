@@ -42,7 +42,13 @@ export const vocab = {
     kind: 'kind', start: 'start', duration: 'duration', self: 'self',
     groups: { http: 'HTTP', db: 'DB', messaging: 'Messaging', rpc: 'RPC', other: 'Other' },
   },
-  ci: { lineNoun: 'job', stationNoun: 'step', hopNoun: 'dependency', hopNounPlural: 'dependencies' },
+  ci: {
+    lineNoun: 'job', stationNoun: 'step', hopNoun: 'dependency', hopNounPlural: 'dependencies',
+    request: 'workflow run', response: 'completion', delay: 'SLOW STEP', serviceAlert: 'JOB FAILED',
+    legendDelay: 'slow step: self time ≥', legendAlert: 'job failed: error starts here',
+    tableTitle: 'Steps', tableSpan: 'step', infrastructure: 'workflow infrastructure',
+    hop: 'STEP', span: 'JOB', trace: 'run', error: 'failed', slow: 'slow step',
+  },
   agent: { lineNoun: 'session', stationNoun: 'event', hopNoun: 'handoff', hopNounPlural: 'handoffs' },
 };
 
