@@ -29,7 +29,9 @@ Type these in Claude Code, Codex or Cursor once the skills are installed.
 
 ### request-transit
 
-**A public transit map for your requests.**
+**A public transit map for your requests.** ([skill README](https://github.com/israelvicars/transit/blob/main/skills/request-transit/README.md))
+
+The animation at the top of this page shows request-transit.
 
 Services are lines, spans are stations, and slow or failed calls are DELAY or SERVICE ALERT markers. It accepts OpenTelemetry/OTLP, Datadog, PostHog, AWS X-Ray, and Grafana Tempo data. Example commands are `npm run build`, `npm run render`, and `npm run verify`.
 
@@ -47,13 +49,17 @@ The optional contracts layer reads local service code only after you ask for it,
 
 ### ci-transit
 
-**A transit map for your CI runs.** (GitHub Actions)
+**A transit map for your CI runs.** (GitHub Actions) ([skill README](https://github.com/israelvicars/transit/blob/main/skills/ci-transit/README.md))
+
+<img src="https://raw.githubusercontent.com/israelvicars/transit/main/docs/ci.gif" alt="Transit map of a GitHub Actions run: each job is a line, its steps are stations, and a DELAY and SERVICE ALERT appear on the failing Run unit tests step" width="700">
 
 Jobs are lines, steps are stations, and failed, cancelled, or slow steps become SERVICE ALERT or DELAY markers. It reads a saved GitHub Actions run or fetches one read-only through the local `gh` CLI. Example commands are `npm run build:ci`, `npm run render:ci`, and `npm run verify:ci`.
 
 ### agent-transit
 
-**A transit map for your coding-agent sessions.** (Claude Code, Codex, Cursor)
+**A transit map for your coding-agent sessions.** (Claude Code, Codex, Cursor) ([skill README](https://github.com/israelvicars/transit/blob/main/skills/agent-transit/README.md))
+
+<img src="https://raw.githubusercontent.com/israelvicars/transit/main/docs/agent.gif" alt="Transit map of a coding-agent session: tool families are lines, tool calls are stations, with DELAY and SERVICE ALERT markers on slow and failed calls" width="700">
 
 Tool families are lines, tool calls are stations, and errors, denials, or long calls become SERVICE ALERT or DELAY markers. By default it keeps only tool names, timing, status, target basenames, and the agent source; prompts, code, commands, output, and arguments stay out of the map. Example commands are `npm run build:agent`, `npm run render:agent`, and `npm run verify:agent`.
 
