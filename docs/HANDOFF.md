@@ -86,3 +86,10 @@ Hand fixes: (1) Codex left the old hop-table header in front of the new ternary,
 Gates: npm run check passes; MP4 identical; the 5 out/ui PNGs are byte-identical to the pre-change commit. Contact sheet reviewed: every step is a station; the DELAY 300 s and SERVICE ALERT sit on test (node 22) / Run unit tests.
 GIFs: docs/ci.gif 470,353 B and docs/agent.gif 544,601 B (sample data), linked from the skill READMEs by raw main URL; the links resolve only after main is pushed. "Steps become stations" in the README and SKILL.md is now accurate.
 Still open: needs-transfers, skipped job (deploy-preview) is a single station with no train, and the THIS TRIP strip marks jobs rather than steps.
+
+## ci-transit needs transfers, skipped jobs, CI UI test: done (25072d9)
+Codex used 87,944 tokens. normalize-gh parents a job that has needs to the last step station of whichever needed job finished latest (falling back to that job's span, then to the root), so build branches off test (node 22) / Run unit tests and deploy-preview off build / Bundle application. Skipped jobs and steps are drawn as a dimmed ghost station with a "skipped" label and no train (new ci vocab key); verify's zero-duration exclusion is unchanged. The time strip gets a small tick per step. All of this is behind CI_STEPS. The sample already had needs, so it was not regenerated.
+New src/ci-transit/scripts/test-ui-ci.mjs, appended to test:ui: the step list is visible, has 7 rows grouped by job, overflows and scrolls at 1280x800, and the screenshot is out/ui/ci-hops-1280x800.png.
+Hand fixes: (1) test-ui-ci took process.argv[0] (node) as the page path; it now uses slice(2). (2) The hop list was sorted by start time, so the jobs interleaved; it now groups by the job's first step start, then step number.
+Gates: npm run check passes; MP4 identical; the 5 request out/ui PNGs are byte-identical. docs/ci.gif regenerated (459,220 B).
+Open: only the latest-finishing need is drawn, so build's other needs (lint, test (node 20)) have no transfer edge (multi-parent needs a model change). The strip's labelled markers are still per job; the step ticks sit underneath them.
