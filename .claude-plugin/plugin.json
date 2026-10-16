@@ -25,5 +25,5 @@
     "codex",
     "cursor"
   ],
-  "skills": "./plugin/skills"
+  "skills": "./skills"
 }

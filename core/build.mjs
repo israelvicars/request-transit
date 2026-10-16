@@ -7,10 +7,10 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseJsonSafe } from '../skills/request-transit/adapters/normalize.mjs';
+import { parseJsonSafe } from '../src/request-transit/adapters/normalize.mjs';
 import { pickAdapter } from './adapters.mjs';
 import { existsSync } from 'node:fs';
-import { matchTrace } from '../skills/request-transit/contracts/match.mjs';
+import { matchTrace } from '../src/request-transit/contracts/match.mjs';
 import { resolveVocab } from './vocab.mjs';
 export const DEFAULT_INDEX = '.transit-cache/contracts/index.json';
 
@@ -50,7 +50,7 @@ export function build(file, opt = {}) {
   let contracts = null;
   if (opt.contracts) {
     const ix = opt.contracts === true ? DEFAULT_INDEX : opt.contracts;
-    if (!existsSync(ix)) throw new Error(`--contracts: no index at ${ix}. Build one first (ask the user): node skills/request-transit/scripts/transit.mjs index --config transit.config.json`);
+    if (!existsSync(ix)) throw new Error(`--contracts: no index at ${ix}. Build one first (ask the user): node src/request-transit/scripts/transit.mjs index --config transit.config.json`);
     contracts = matchTrace(trace, JSON.parse(readFileSync(ix, 'utf8')));
   }
   const js = `window.TRACE = ${JSON.stringify(trace)};\nwindow.VIZ_OPTS = ${JSON.stringify(vizOpts)};\nwindow.CONTRACTS = ${JSON.stringify(contracts)};`.replace(/<\//g, '<\\/');
@@ -64,7 +64,7 @@ export function build(file, opt = {}) {
   return { out, trace, contracts };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && process.argv[1].endsWith('/build.mjs')) {
   await (await import('./setup.mjs')).ensureSetup({ need: [] });   // node version only; the HTML needs no deps
   const argv = process.argv.slice(2); const opt = {}; const pos = [];
   for (let i = 0; i < argv.length; i++) {

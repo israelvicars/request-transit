@@ -2,6 +2,8 @@
 name: agent-transit
 description: A transit map for your coding-agent sessions. Use when the user wants to visualize one Claude Code, Codex CLI, or Cursor coding-agent session as a subway map of tool calls.
 ---
+<!-- Generated from src/agent-transit/SKILL.md; do not edit -->
+
 
 # Agent Transit
 
@@ -11,14 +13,14 @@ A local subway map for one AI coding-agent session: tool families are lines and 
 
 ## Where things are
 
-`<skill>` means the folder containing this file. Run scripts from it by absolute path, e.g. `node <skill>/scripts/find-session.mjs --source codex`. The shared engine is at `<skill>/../../core/`.
+`<skill>` means the folder containing this file. Run scripts from it by absolute path, e.g. `node <skill>/src/agent-transit/scripts/find-session.mjs --source codex`. The shared engine is at `<skill>/core/`.
 
 ## Steps
 
-1. Find the newest local session path without reading its contents: `node <skill>/scripts/find-session.mjs --source claude-code|codex|cursor`.
-2. Build one map: `node <skill>/../../core/build.mjs <session.jsonl> --format claude-code --out ./transit-out/agent/transit.html --title "Agent: one coding session, tool by tool"`.
-3. Share it with the bundled renderer: `node <skill>/../../core/render.mjs <session.jsonl> --format claude-code --name agent`.
-4. Check it with the bundled verifier: `node <skill>/../../core/verify.mjs <session.jsonl> --format claude-code --name agent`.
+1. Find the newest local session path without reading its contents: `node <skill>/src/agent-transit/scripts/find-session.mjs --source claude-code|codex|cursor`.
+2. Build one map: `node <skill>/core/build.mjs <session.jsonl> --format claude-code --out ./transit-out/agent/transit.html --title "Agent: one coding session, tool by tool"`.
+3. Share it with the bundled renderer: `node <skill>/core/render.mjs <session.jsonl> --format claude-code --name agent`.
+4. Check it with the bundled verifier: `node <skill>/core/verify.mjs <session.jsonl> --format claude-code --name agent`.
 
 Use `--format codex` or `--format cursor` for those sources. Cursor transcripts provide order only, with uniform synthetic durations because they have no timestamps or results. Keep session files local and never upload them. Synthetic fixtures are provided in `samples/`; no real home-directory logs belong in this repository.
 

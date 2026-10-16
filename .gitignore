@@ -2,4 +2,7 @@ node_modules/
 out/
 *.log
 .transit-cache/
-skills/request-transit/references/design-system.md
+src/request-transit/references/design-system.md
+skills/*/node_modules/
+skills/*/.transit-cache/
+skills/*/out/

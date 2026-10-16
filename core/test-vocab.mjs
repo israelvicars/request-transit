@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { build } from './build.mjs';
 
-const sample = resolve('skills/request-transit/samples/otel-demo-checkout.otlp.json');
+const sample = resolve('src/request-transit/samples/otel-demo-checkout.otlp.json');
 const dir = mkdtempSync(join(tmpdir(), 'transit-vocab-'));
 try {
   const custom = {

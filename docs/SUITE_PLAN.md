@@ -22,7 +22,7 @@ Shared, in `core/` (moved from today's `engine/` and parts of `scripts/`):
 - `test-network.mjs` (zero network requests from the built page), run against every skill's sample
 - A new `core/vocab.mjs`: a per-skill label pack (line, station, alert names, legend, panel group order) passed in as `window.VIZ_OPTS.vocab`
 
-Per skill, in `skills/<name>/`:
+Per skill source, in `src/<name>/`:
 - `SKILL.md`, `adapters/` (to the span model), `samples/` (synthetic), `references/`, and a thin `scripts/` CLI that calls core
 - request-transit also keeps `contracts/` and `examples/`
 
@@ -30,17 +30,17 @@ Per skill, in `skills/<name>/`:
 
 ```
 core/            engine, template, fonts, setup, render, verify, export, network test
-skills/request-transit/  SKILL.md adapters/ contracts/ samples/ references/ scripts/
-skills/ci-transit/       SKILL.md adapters/ samples/ scripts/
-skills/agent-transit/    SKILL.md adapters/ samples/ scripts/
-plugin/skills/<name>/    GENERATED, self-contained copies (core plus skill), not hand-edited
-.claude-plugin/          one plugin listing three skills (`"skills": "./plugin/skills"`)
-scripts/                 build-plugin-skills.mjs, test runner
+src/request-transit/     SKILL.md adapters/ contracts/ samples/ references/ scripts/
+src/ci-transit/          SKILL.md adapters/ samples/ scripts/
+src/agent-transit/       SKILL.md adapters/ samples/ scripts/
+skills/<name>/            GENERATED, self-contained copies (core plus skill), not hand-edited
+.claude-plugin/          one plugin listing three skills (`"skills": "./skills"`)
+scripts/                 build-skills.mjs, test runner
 ```
 
 Exposure:
-- `scripts/build-plugin-skill.mjs` assembles `plugin/skills/<name>/SKILL.md` for all three skills. `--check` fails in `npm test` when a copy is stale.
-- `npx skills add <repo>` discovers all three under `plugin/skills/`; `--skill <name>` selects one.
+- `scripts/build-skills.mjs` assembles each committed `skills/<name>/` folder from `src/<name>/` and shared `core/`. `--check` compares the complete generated tree and fails in `npm test` when a copy is stale.
+- `npx skills add <repo>` discovers all three under `skills/`; `--skill <name>` selects one and copies only that self-contained folder.
 - Local symlinks: `~/.claude/skills/<name>` and `~/.agents/skills/<name>` point to the matching skill folder.
 - Cost: core is about 1.2k lines plus about 120 KB of fonts, duplicated three times in the generated folders. That's acceptable. The alternative, a shared npm package, is on hold.
 
@@ -51,8 +51,8 @@ Run each as `codex exec "<milestone text + this doc>" </dev/null` from the repo.
 **M0 Baseline.** Run `npm test`, `npm run verify`, `npm run test:ui` on main and record the outputs and the hash of `out/otel/anim.mp4` in `docs/suite-baseline.md`.
 Accept: every command passes, and the hash is recorded.
 
-**M1 Extract core (no behaviour change).** Move `engine/*` and the shared scripts to `core/`. Move request-transit's files to `skills/request-transit/`. Update imports and npm scripts. Generalize the plugin-skill builder to output a self-contained `plugin/skills/request-transit/`.
-Accept: `npm test`, `npm run verify`, `npm run test:ui` pass. The MP4 is **byte-identical** to M0. Running the render from inside `plugin/skills/request-transit/`, copied to /tmp, still works. `test:network` passes.
+**M1 Extract core (no behaviour change).** Move `engine/*` and the shared scripts to `core/`. Move request-transit's source files to `src/request-transit/`. Update imports and npm scripts. Generate a self-contained `skills/request-transit/`.
+Accept: `npm test`, `npm run verify`, `npm run test:ui` pass. The MP4 is **byte-identical** to M0. Running the render from inside `skills/request-transit/`, copied to /tmp, still works. `test:network` passes.
 
 **M2 Vocab packs.** Add `core/vocab.mjs` and replace hardcoded copy in the template (service, hop, legend, alert labels) with the vocab. request-transit's vocab reproduces today's strings exactly.
 Accept: the request-transit MP4 is still byte-identical to M0. A unit test renders with a dummy vocab and finds its labels in the built HTML.
@@ -86,5 +86,5 @@ Accept: the manifests name `transit`, `npx skills add` can select all three or o
 ## Decisions (2026-10-16)
 - Launch is held until the whole suite is ready.
 - All three skills target Codex, Cursor and Claude Code. agent-transit parses all three session log formats (Cursor's format still needs research). Every skill is tested in all three agents (M7).
-- **Single shared `core/` folder for now** (no per-skill copies). Skill scripts import `../../core/...`. This means only whole-repo installs (plugin, `npx skills add` of the repo, symlinks) work; single-folder copies (Composio) don't, which is the trade-off accepted. The plugin builder only generates the SKILL.md wrappers. Revisit vendoring before any directory submission.
+- **Source lives in `src/`, while generated `skills/<name>/` folders are self-contained.** Each generated folder includes its own `core/` and the adapters/contracts it needs so `npx skills add ... --skill <name>` and skill-folder symlinks work without the rest of the repository. Generated output is deterministic and checked in.
 - Suite name is `Transit`; skill names remain `request-transit`, `ci-transit`, and `agent-transit`.

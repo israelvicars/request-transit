@@ -72,9 +72,13 @@ Transit is local only: no telemetry, no tracking, no analytics, and no network r
 ## Development
 
 ```sh
-npm test             # all unit, adapter, privacy, and plugin-copy tests
+npm test             # all unit, adapter, privacy, and self-contained-copy tests
 npm run check        # npm test, every verifier, and the UI/network gates
 ```
+
+Source lives in `src/<name>/`; the committed, generated `skills/<name>/`
+folders are the self-contained install surface for plugins, `npx skills`, and
+local symlinks. Run `node scripts/build-skills.mjs` after changing source.
 
 Rendering uses local browser and ffmpeg prerequisites. The optional fetch commands use credentials already configured for your own backend or GitHub account.
 
