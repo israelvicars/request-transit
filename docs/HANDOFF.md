@@ -74,3 +74,8 @@ Note: the ci-transit list shows jobs (hops) only, not steps; that's a known foll
 
 ## Published (user approved)
 Smoke tests re-run: Codex 32,552 tokens, Claude Code $0.20; all 3 skills built their HTML pages. suite was fast-forwarded into main and main pushed to israelvicars/transit at 2b73a42. GitHub description and topics applied. design-system.md is not in main. Desktop examples refreshed. This note is a local commit on suite only (unpushed).
+
+## Per-skill READMEs: done (53a69f4)
+Codex used 33,338 tokens. Added src/<name>/README.md for all 3 skills (name, one-line description, 4 example prompts, `npx skills add israelvicars/transit --skill <name>`, privacy line, link to the root README). build-skills.mjs copies README.md into skills/<name>/ when it exists. Only request-transit has a GIF (docs/hero.gif via the raw main URL, so it works from the copied folder); ci/agent GIFs exist only in untracked out/, so no new binaries were added.
+Hand fixes: removed a duplicated "Give it…" paragraph from each README; rewrote prompts that used the alert labels as nouns ("show the DELAY", "identify the SERVICE ALERT") into plain language; marked Cursor as experimental in agent-transit.
+Gates: `npm run check` passes (build-skills --check, test-skill-copy, verifiers, test:ui, network); MP4 identical to baseline. Sizes: +~1 KB per skill (README 880-1080 bytes): request 684K→688K, ci 344K→348K, agent 376K→380K (du).
