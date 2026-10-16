@@ -31,9 +31,13 @@ export function redact(trace, keys = [], useDefault = true) {
 
 export function build(file, opt = {}) {
   const input = readFileSync(file, 'utf8');
-  const doc = parseJsonSafe(input);
+  let doc;
+  try { doc = parseJsonSafe(input); }
+  catch (err) {
+    doc = input.split(/\r?\n/).filter(Boolean).map((line) => parseJsonSafe(line));
+  }
   const adapter = pickAdapter(doc, opt.format);
-  const trace = adapter.normalize(doc, { format: adapter.format, traceId: opt['trace-id'] });
+  const trace = adapter.normalize(doc, { format: adapter.format, traceId: opt['trace-id'], showArgs: !!opt['show-args'] });
   redact(trace, opt.redact ? String(opt.redact).split(',') : [], !opt['no-default-redact']);
   const vizOpts = {};
   if (opt.title) vizOpts.title = opt.title;
@@ -41,7 +45,7 @@ export function build(file, opt = {}) {
   if (opt['slow-ms']) vizOpts.slowMs = Number(opt['slow-ms']);
   if (opt['ms-per-sec']) vizOpts.msPerSec = Number(opt['ms-per-sec']);
   if (opt['target-seconds']) vizOpts.targetSeconds = Number(opt['target-seconds']);
-  vizOpts.vocab = resolveVocab(opt.vocab || (adapter.format === 'gh-actions' ? 'ci' : undefined));
+  vizOpts.vocab = resolveVocab(opt.vocab || (adapter.format === 'gh-actions' ? 'ci' : adapter.format && ['claude-code', 'codex', 'cursor'].includes(adapter.format) ? 'agent' : undefined));
   // contracts are opt-in: only an explicit --contracts [index.json] reads an index, and it never builds one
   let contracts = null;
   if (opt.contracts) {
@@ -67,7 +71,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     if (!argv[i].startsWith('--')) { pos.push(argv[i]); continue; }
     const k = argv[i].slice(2);
     if (k.startsWith('no-')) opt[k] = true;
-    else if (k === 'contracts' && (!argv[i + 1] || argv[i + 1].startsWith('--'))) opt[k] = true;
+    else if ((k === 'contracts' || k === 'show-args') && (!argv[i + 1] || argv[i + 1].startsWith('--'))) opt[k] = true;
     else opt[k] = argv[++i];
   }
   if (!pos[0]) { console.error('usage: node core/build.mjs <trace.json> [--out out/transit.html] [--title ...]'); process.exit(1); }

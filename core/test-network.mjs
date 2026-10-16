@@ -10,7 +10,8 @@ await ensureSetup({ need: ['deps', 'browser'] });
 const { launchBrowser, ROOT } = await import('./tools.mjs');
 const dir = join(ROOT, '.transit-cache', 'test-network'); mkdirSync(dir, { recursive: true });
 const pages = [build(join(ROOT, 'skills/request-transit/samples/otel-demo-checkout.otlp.json'), { out: join(dir, 'plain.html') }).out,
-  build(join(ROOT, 'skills/ci-transit/samples/gh-run-sample.json'), { format: 'gh-actions', out: join(dir, 'ci.html') }).out];
+  build(join(ROOT, 'skills/ci-transit/samples/gh-run-sample.json'), { format: 'gh-actions', out: join(dir, 'ci.html') }).out,
+  build(join(ROOT, 'skills/agent-transit/samples/claude-code-synthetic.jsonl'), { format: 'claude-code', out: join(dir, 'agent.html') }).out];
 try { pages.push(build(join(ROOT, 'skills/request-transit/samples/otel-demo-checkout.otlp.json'), { out: join(dir, 'contracts.html'), contracts: join(ROOT, '.transit-cache/contracts/index.json') }).out); } catch { /* no index built: plain page only */ }
 const browser = await launchBrowser();
 let bad = [];

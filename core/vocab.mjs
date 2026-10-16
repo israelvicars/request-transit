@@ -49,7 +49,13 @@ export const vocab = {
     tableTitle: 'Steps', tableSpan: 'step', infrastructure: 'workflow infrastructure',
     hop: 'STEP', span: 'JOB', trace: 'run', error: 'failed', slow: 'slow step',
   },
-  agent: { lineNoun: 'session', stationNoun: 'event', hopNoun: 'handoff', hopNounPlural: 'handoffs' },
+  agent: {
+    lineNoun: 'tool family', stationNoun: 'call', hopNoun: 'call', hopNounPlural: 'calls',
+    trace: 'session', request: 'session', response: 'completion', tableTitle: 'Tool calls', tableSpan: 'call',
+    delay: 'SLOW CALL', serviceAlert: 'TOOL ERROR', legendDelay: 'slow call: self time ≥',
+    legendAlert: 'tool error: error starts here', infrastructure: 'agent infrastructure',
+    hop: 'CALL', span: 'TOOL', error: 'error', slow: 'slow call',
+  },
 };
 
 export const VOCAB_PACKS = vocab;
