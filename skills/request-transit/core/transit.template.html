@@ -162,6 +162,7 @@ if (document.fonts && document.fonts.load) { document.fonts.load(font(400, 14));
 const D = window.TRACE, OPT = window.VIZ_OPTS || {};
 const REQUEST_VOCAB = { lineNoun: 'service', stationNoun: 'hop', hopNoun: 'hop', hopNounPlural: 'hops', play: 'Play', pause: 'Pause', helpTitle: 'Keyboard shortcuts', space: 'play / pause', nextHop: 'next hop', previousHop: 'previous hop', seek: 'seek 0.5 s', frame: 'step one frame', startEnd: 'start / end', speed: 'speed 0.5x / 1x / 2x', click: 'click', clickHelp: 'station, train or line: select that hop', inspectClick: 'click a station, train or line', pauseHelp: 'selects the hop in progress', escape: 'deselect / close', help: 'this help', of: 'of', video: '1 s of video', trace: 'trace', infrastructure: 'infrastructure', delay: 'DELAY', serviceAlert: 'SERVICE ALERT', request: 'request', response: 'response', legendDelay: 'delay: self time ≥', legendAlert: 'service alert: error starts here', legendInfra: 'dotted: infrastructure (no spans of its own)', synthetic: 'SYNTHETIC sample data', renderedLocally: 'rendered locally by Transit', unmatched: 'unmatched', matched: 'matched', contracts: 'contracts', noContractIndex: 'no contract index', error: 'error', slow: 'slow', ok: 'ok', tableTitle: 'Hops', tableStart: 'start', tableFrom: 'from', tableTo: 'to', tableSpan: 'span', tableStatus: 'status', tableContract: 'contract', infrastructureHop: 'infrastructure hop', infrastructureHopTitle: 'Infrastructure hop', unmatchedContracts: 'unmatched (contracts not indexed)', unmatchedShort: 'unmatched', noHopSelected: 'no hop selected', inspectHop: 'Pause, press', or: 'or', inspectTail: 'to inspect a hop.', shortcuts: 'Shortcuts', transit: 'Transit', hop: 'HOP', span: 'SPAN', from: 'from', client: 'client', server: 'server', noServerSpan: 'no server span', notInstrumented: 'is not instrumented', status: 'status', unset: 'unset', resource: 'resource', attributes: 'Attributes', serverSpan: 'server span', children: 'Children', none: 'none', sensitiveRedacted: 'Sensitive-looking keys are redacted at build time.', redactedAcross: 'attribute(s) redacted across this trace before rendering.', expectedRequestResponse: 'Expected request / response', contractsNotIndexed: 'Contracts not indexed. The contract layer is optional: build an index with', thenBuildWith: 'then build the page with', noHopContract: 'No hop contract for this span', internalWorkInside: 'internal work inside', noContractExpected: 'No contract expected', fallback: 'FALLBACK', matchedTag: 'MATCHED', message: 'Message', noRequestSchema: 'No request schema found', noResponseType: 'No response type found', responseBody: 'no body (void)', unknown: 'unknown', unresolved: 'unresolved', deeperFields: '… deeper fields not shown', optional: 'optional', required: 'required', sharedPackage: 'shared package', declared: 'declared', clientCallFrom: 'client call from', in: 'in', wholeTrace: 'of the whole trace', spanInsideClient: 'server span inside the client call', spanInsideParent: 'span inside its parent', deselect: 'Deselect (Esc)', more: 'more', confidenceHigh: 'high confidence', confidenceMedium: 'medium confidence', confidenceLow: 'low confidence', validator: 'validator', type: 'type', spec: 'spec', schema: 'schema', kind: 'kind', start: 'start', duration: 'duration', self: 'self', groups: { http: 'HTTP', db: 'DB', messaging: 'Messaging', rpc: 'RPC', other: 'Other' } };
 const V = Object.assign({}, REQUEST_VOCAB, OPT.vocab || {});
+if (V.skipped == null) V.skipped = 'skipped';
 const CI_STEPS = OPT.ciStepsAsStations === true;
 document.querySelectorAll('[data-vocab]').forEach((el) => { el.textContent = V[el.dataset.vocab] ?? el.dataset.vocab; });
 document.querySelector('#help h3').textContent = V.helpTitle;
@@ -200,8 +201,9 @@ const MIN_LEG = MIN_TRAVEL * MS_PER_SEC;
 // nodes and calls
 const nodes = new Map();
 function addNode(id, inferred, t, span) {
-  if (!nodes.has(id)) nodes.set(id, { id, inferred, first: t, lineId: CI_STEPS && span && span.attrs && span.attrs['ci.job'] || id, label: CI_STEPS && span && span.attrs && span.attrs['ci.step.name'] || id, ciStep: CI_STEPS && !!(span && span.attrs && span.attrs['ci.step.number'] != null) });
+  if (!nodes.has(id)) nodes.set(id, { id, inferred, first: t, lineId: CI_STEPS && span && span.attrs && span.attrs['ci.job'] || id, label: CI_STEPS && span && span.attrs && span.attrs['ci.step.name'] || id, ciStep: CI_STEPS && !!(span && span.attrs && span.attrs['ci.step.number'] != null), skipped: CI_STEPS && !!(span && span.attrs && span.attrs['ci.conclusion'] === 'skipped') });
   else nodes.get(id).first = Math.min(nodes.get(id).first, t);
+  if (CI_STEPS && span && span.attrs && span.attrs['ci.conclusion'] === 'skipped') nodes.get(id).skipped = true;
   return nodes.get(id);
 }
 for (const s of spans) addNode(s.service, false, s.start, s);
@@ -244,6 +246,7 @@ for (const c of calls) {
   const dur = c.end - c.start;
   c.outT = c.oneWay ? Math.min(MIN_LEG, Math.max(dur * 0.4, 0)) : Math.max(c.arrive - c.start, Math.min(MIN_LEG, dur * 0.4));
   c.retT = c.oneWay ? 0 : Math.max(c.end - c.leave, Math.min(MIN_LEG, dur * 0.4));
+  c.ghost = CI_STEPS && !!(c.span.attrs && c.span.attrs['ci.conclusion'] === 'skipped');
 }
 // node owner of each span (inferred peer spans belong to the peer node)
 const nodeOf = (s) => s.via || s.service;
@@ -373,6 +376,7 @@ function strokePath(path, upto) {
 const edgeOf = (c) => edges.get(c.from + '>' + c.to);
 // train state of one call at trace time tm
 function trainFor(c, tm) {
+  if (c.ghost) return null;
   const e = edgeOf(c);
   if (tm >= c.start && tm < c.start + c.outT) return { c, e, p: easeInOut((tm - c.start) / c.outT), back: false };
   if (!c.oneWay && c.retT > 0 && tm >= c.end - c.retT && tm < c.end) return { c, e, p: 1 - easeInOut((tm - (c.end - c.retT)) / c.retT), back: true };
@@ -417,7 +421,7 @@ function drawLines(tm) {
   for (const e of es) { ctx.lineWidth = LW; ctx.strokeStyle = C.faint; ctx.setLineDash(e.infra ? [2, 9] : []); strokePath(e.path, e.path.len); }
   ctx.setLineDash([]);
   for (const e of es) {
-    const r = reached(e, tm); if (r <= 0) continue;
+    const r = e.to.skipped ? 0 : reached(e, tm); if (r <= 0) continue;
     ctx.lineWidth = LW; ctx.strokeStyle = e.color;
     if (e.infra) { ctx.setLineDash([2, 9]); ctx.lineWidth = LW - 1; }
     strokePath(e.path, r * e.path.len); ctx.setLineDash([]);
@@ -436,7 +440,7 @@ function drawStations(tm) {
     const active = spansAt(n).some((s) => tm >= s.start && tm < s.end && showInStrip(s));
     const visited = n.first <= tm;
     const r = 9;
-    ctx.globalAlpha = visited ? 1 : 0.45;
+    ctx.globalAlpha = n.skipped ? 0.28 : visited ? 1 : 0.45;
     ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.fillStyle = '#fff';
     if (n.transfer) rr(n.x - r, n.y + n.top - r, 2 * r, n.bot - n.top + 2 * r, r);
     else { ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 2 * Math.PI); }
@@ -448,10 +452,11 @@ function drawStations(tm) {
     ctx.font = font(700, 15); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     const name = fitText(n.label || n.id, 150), w = ctx.measureText(name).width;
     const bx = n.x - (w + 22) / 2;
-    ctx.globalAlpha = visited ? 1 : 0.35;
+    ctx.globalAlpha = n.skipped ? 0.28 : visited ? 1 : 0.35;
     bullet(bx + 8, ly - 5, 8, n);
     ctx.fillStyle = C.ink; ctx.font = font(700, 15); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.fillText(name, bx + 21, ly);
+    if (n.skipped && CI_STEPS) { ctx.font = font(400, 10); ctx.fillStyle = C.ink2; ctx.textAlign = 'center'; ctx.fillText(V.skipped, n.x, n.y + n.bot + r + 13); }
     if (n.inferred) { ctx.font = font(400, 11); ctx.fillStyle = C.ink2; ctx.textAlign = 'center'; ctx.fillText(n.sub ? `${V.infrastructure} · ${n.sub}` : V.infrastructure, n.x, n.y + n.bot + r + 14); }
     ctx.globalAlpha = 1;
   }
@@ -560,6 +565,7 @@ function drawStrip(tm) {
     if (!seen.has(n.id) && x - lastLab > 19) { seen.add(n.id); bullet(x, SY - 28, 8, n); lastLab = x; }
     ctx.globalAlpha = 1;
     if (c.error && tm >= c.errorAt) { ctx.fillStyle = C.err; ctx.beginPath(); ctx.moveTo(x, SY + 16); ctx.lineTo(x + 7, SY + 28); ctx.lineTo(x - 7, SY + 28); ctx.closePath(); ctx.fill(); }
+    if (CI_STEPS && c.span.attrs && c.span.attrs['ci.step.number'] != null) { ctx.fillStyle = nodes.get(c.to).skipped ? C.faint : nodes.get(c.to).color; ctx.fillRect(x - 1, SY + 18, 2, 7); }
   }
   // the train on the strip
   rr(px - 13, SY - 7, 26, 14, 7); ctx.fillStyle = C.ink; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
@@ -600,8 +606,11 @@ if (hopsEl) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   hopsEl.innerHTML = (CI_STEPS
     ? (() => {
-      const stepSpans = spans.filter((s) => s.attrs && s.attrs['ci.step.number'] != null).sort((a, b) => a.start - b.start || String(a.spanId).localeCompare(String(b.spanId)));
-      return `<h3>${V.tableTitle}</h3><table><tr><th>${V.tableStart}</th><th>${V.lineNoun}</th><th>${V.tableSpan}</th><th>${V.tableStatus}</th></tr>` + stepSpans.map((s) => `<tr data-ci-step="${esc(s.spanId)}"><td>${fmtMs(s.start)}</td><td>${esc(s.attrs['ci.job'])}</td><td>${esc(s.name)}</td><td>${s.status === 'error' ? V.error : s.slow ? V.slow : V.ok}</td></tr>`).join('') + '</table>';
+      const allSteps = spans.filter((s) => s.attrs && s.attrs['ci.step.number'] != null);
+      const jobFirst = new Map();
+      for (const s of allSteps) jobFirst.set(s.attrs['ci.job'], Math.min(jobFirst.get(s.attrs['ci.job']) ?? Infinity, s.start));
+      const stepSpans = allSteps.sort((a, b) => jobFirst.get(a.attrs['ci.job']) - jobFirst.get(b.attrs['ci.job']) || String(a.attrs['ci.job']).localeCompare(String(b.attrs['ci.job'])) || a.attrs['ci.step.number'] - b.attrs['ci.step.number']);
+      return `<h3>${V.tableTitle}</h3><table><tr><th>${V.tableStart}</th><th>${V.lineNoun}</th><th>${V.tableSpan}</th><th>${V.tableStatus}</th></tr>` + stepSpans.map((s) => `<tr data-ci-step="${esc(s.spanId)}"><td>${fmtMs(s.start)}</td><td>${esc(s.attrs['ci.job'])}</td><td>${esc(s.name)}</td><td>${s.status === 'unset' ? V.skipped : s.status === 'error' ? V.error : s.slow ? V.slow : V.ok}</td></tr>`).join('') + '</table>';
     })()
     : `<h3>${V.tableTitle}</h3><table><tr><th>${V.tableStart}</th><th>${V.tableFrom}</th><th>${V.tableTo}</th><th>${V.tableSpan}</th><th>${V.tableStatus}</th><th>${V.tableContract}</th></tr>` +
       hops.map((c) => `<tr><td>${fmtMs(c.start)}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td><td>${esc(c.span.name)}</td><td>${c.error ? V.error : c.slow ? V.slow : V.ok}</td><td>${(() => { const m = window.CONTRACTS && (window.CONTRACTS.bySpan[c.callee.spanId] || window.CONTRACTS.bySpan[c.span.spanId]); if (!window.CONTRACTS) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedContracts; if (!m) return nodes.get(c.to).inferred ? V.infrastructureHop : V.unmatchedShort; return m.state === 'unmatched' ? V.unmatchedShort + ': ' + esc(m.reason) : m.state === 'infra' ? V.infrastructureHop : esc(m.state + ' ' + m.key); })()}</td></tr>`).join('') + '</table>');

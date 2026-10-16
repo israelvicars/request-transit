@@ -47,7 +47,7 @@ export const vocab = {
     request: 'workflow run', response: 'completion', delay: 'DELAY', serviceAlert: 'SERVICE ALERT',
     legendDelay: 'delay: self time ≥', legendAlert: 'service alert: error starts here',
     tableTitle: 'Steps', tableSpan: 'step', infrastructure: 'workflow infrastructure',
-    hop: 'STEP', span: 'JOB', trace: 'run', error: 'failed', slow: 'slow step',
+    hop: 'STEP', span: 'JOB', trace: 'run', error: 'failed', slow: 'slow step', skipped: 'skipped',
   },
   agent: {
     lineNoun: 'tool family', stationNoun: 'call', hopNoun: 'call', hopNounPlural: 'calls',
