@@ -235,6 +235,21 @@ for (const s of spans) {
   }
   calls.push(c);
 }
+// GitHub Actions needs are a fan-in even though the normalized trace keeps one
+// parent for layout. Add the remaining transfers only in the CI view, from the
+// recorded terminal stations to the dependent job's first station.
+if (CI_STEPS) {
+  for (const job of spans) {
+    const fromIds = job.attrs && job.attrs['ci.needs.from'];
+    if (!Array.isArray(fromIds) || !fromIds.length) continue;
+    const target = job;
+    for (const fromId of fromIds) {
+      const source = byId.get(fromId);
+      if (!source || source.service === target.service) continue;
+      calls.push({ from: source.service, to: target.service, start: source.end, end: Math.max(source.end, target.end), arrive: target.start, leave: target.end, span: job, callee: target, oneWay: false, ciExtra: true });
+    }
+  }
+}
 // slow / error flags per call: look through the callee's same-service subtree
 function subtree(s, svc, out) { out.push(s); for (const k of kids.get(s.spanId)) if (k.service === svc) subtree(k, svc, out); return out; }
 for (const c of calls) {
@@ -255,7 +270,7 @@ const showInStrip = (s) => !((s.kind === 'client' || s.kind === 'producer') && !
 // ------------------------------------------------------------------ layout: layered left to right by longest call path
 const out = new Map([...nodes.keys()].map((k) => [k, new Set()]));
 const indeg = new Map([...nodes.keys()].map((k) => [k, 0]));
-for (const c of calls) if (!out.get(c.from).has(c.to)) { out.get(c.from).add(c.to); indeg.set(c.to, indeg.get(c.to) + 1); }
+for (const c of calls) if (!c.ciExtra && !out.get(c.from).has(c.to)) { out.get(c.from).add(c.to); indeg.set(c.to, indeg.get(c.to) + 1); }
 const layer = new Map();
 const onStack = new Set();
 function dfs(n, d) {
@@ -272,7 +287,7 @@ const L = Math.max(...layer.values()) + 1;
 const NODE_W = 40, NODE_H = 24;
 const G = { top: 156, bottom: 556, left: 70, right: 1090 };
 const colX = (i) => L === 1 ? (G.left + G.right) / 2 : G.left + NODE_W / 2 + i * (G.right - G.left - NODE_W) / (L - 1);
-const parentsOf = (k) => calls.filter((c) => c.to === k).map((c) => c.from);
+const parentsOf = (k) => calls.filter((c) => !c.ciExtra && c.to === k).map((c) => c.from);
 const MAX_GAP = 80;
 for (let i = 0; i < L; i++) {
   const col = [...nodes.values()].filter((n) => layer.get(n.id) === i);
@@ -595,10 +610,11 @@ window.renderAt = renderAt;
 window.VIZ = {
   seconds: SECONDS, fps: FPS, intro: INTRO, msPerSec: MS_PER_SEC, total: TOTAL, slowMs: SLOW_MS,
   frameOfTraceMs: (ms) => Math.ceil((INTRO + ms / MS_PER_SEC) * FPS - 1e-6),
-  calls: calls.map((c) => ({ from: c.from, to: c.to, start: c.start, end: c.end, slow: c.slow, error: c.error, spanId: c.span.spanId, name: c.span.name, infra: nodes.get(c.to).inferred })),
+  calls: calls.filter((c) => !c.ciExtra).map((c) => ({ from: c.from, to: c.to, start: c.start, end: c.end, slow: c.slow, error: c.error, spanId: c.span.spanId, name: c.span.name, infra: nodes.get(c.to).inferred })),
   nodes: order.map((n) => ({ id: n.id, label: n.label, lineId: n.lineId, ciStep: !!n.ciStep, x: n.x, y: n.y, color: n.color, bullet: n.bullet, inferred: !!n.inferred, transfer: n.transfer })),
-  trainsAt: (t) => calls.map((c) => trainFor(c, traceMsAt(t))).filter(Boolean).map((r) => ({ from: r.c.from, to: r.c.to, spanId: r.c.span.spanId, back: r.back })),
+  trainsAt: (t) => calls.filter((c) => !c.ciExtra).map((c) => trainFor(c, traceMsAt(t))).filter(Boolean).map((r) => ({ from: r.c.from, to: r.c.to, spanId: r.c.span.spanId, back: r.back })),
   skewFixes,
+  ...(CI_STEPS ? { ciExtraTransfers: calls.filter((c) => c.ciExtra).map((c) => ({ from: c.from, to: c.to, start: c.start })) } : {}),
 };
 // hop table for the interactive page (story 1/2a: unmatched and infrastructure hops listed, never hidden)
 const hopsEl = document.getElementById('hops');

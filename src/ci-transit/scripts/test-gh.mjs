@@ -19,6 +19,7 @@ assert.equal(trace.spans.filter((s) => s.status === 'error' && s.attrs['ci.step.
 assert.equal(failedStep.parentId, 'job-240103-step-1', 'steps are stations in their job-local chain');
 assert.equal(steps.find((s) => s.attrs['ci.job'] === 'test (node 22)' && s.attrs['ci.step.number'] === 1).parentId, 'job-240103');
 assert.equal(trace.spans.find((s) => s.name === 'build').parentId, 'job-240103-step-2', 'build transfers from the latest needed job step');
+assert.deepEqual(trace.spans.find((s) => s.name === 'build').attrs['ci.needs.from'], ['job-240101-step-2', 'job-240102-step-2'], 'build records every other needed job terminal station');
 assert.equal(trace.spans.find((s) => s.name === 'deploy-preview').parentId, 'job-240104-step-1', 'deploy transfers from build\'s last step');
 const skipped = trace.spans.find((s) => s.name === 'deploy-preview');
 assert.equal(skipped.attrs['ci.conclusion'], 'skipped');
@@ -36,4 +37,5 @@ build(new URL('../samples/gh-run-sample.json', import.meta.url), { out });
 const html = readFileSync(out, 'utf8');
 for (const word of ['job', 'step', 'SERVICE ALERT', 'DELAY', 'Steps', 'skipped', 'ciStepsAsStations', 'data-ci-step']) assert.match(html, new RegExp(word));
 assert.match(html, /s\.attrs\['ci\.step\.number'\]/, 'CI markers are filtered to step stations');
+assert.match(html, /ci\.needs\.from/, 'CI needs transfer metadata is embedded');
 console.log('ci: synthetic GitHub Actions normalization and CI vocab pass');

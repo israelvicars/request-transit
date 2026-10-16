@@ -21,6 +21,9 @@ const expected = ['lint', 'lint', 'test (node 20)', 'test (node 20)', 'test (nod
 ok(jobs.length === expected.length, `${jobs.length} CI step rows`);
 ok(jobs.every((job, i) => job === expected[i]), `rows are grouped by job in order: ${jobs.join(' → ')}`);
 ok(await rows.evaluateAll((els) => els.every((el) => el.dataset.ciStep)), 'each row carries data-ci-step');
+const needsTransfers = await page.evaluate(() => (window.VIZ.ciExtraTransfers || []).filter((c) => c.from.endsWith('-step-2') && c.to === 'build').map((c) => `${c.from}>${c.to}`));
+ok(needsTransfers.length === 2, `build has two extra needs transfers: ${needsTransfers.join(', ')}`);
+ok(needsTransfers.includes('job-240101-step-2>build') && needsTransfers.includes('job-240102-step-2>build'), 'extra transfers come from lint and test (node 20)');
 
 const box = await page.evaluate(() => { const el = document.getElementById('hops'); const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: el.clientHeight, scrollHeight: el.scrollHeight }; });
 ok(box.bottom <= 800 + 1 && box.height >= 120, `hop list fits in the 1280x800 viewport (${box.height}px)`);

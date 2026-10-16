@@ -58,14 +58,22 @@ export function normalizeGh(doc) {
       previousEndNs = step.endNs;
     }
   }
-  // A dependent job transfers from the last station of the dependency that
-  // finished latest. If that job has no timed steps, its own span is the stop.
+  // A dependent job keeps one parent: the last station of the dependency that
+  // finished latest. The other dependency stops are recorded separately for
+  // the CI renderer, which can draw them without changing the trace tree.
   for (const record of jobRecords.values()) {
     const needs = record.job.attrs['ci.needs'];
     if (!Array.isArray(needs) || needs.length === 0) continue;
     const candidates = needs.map((name) => jobRecords.get(name)).filter(Boolean);
-    const latest = candidates.sort((a, b) => Number(b.job.endNs - a.job.endNs))[0];
-    if (latest) record.job.parentId = (latest.steps[latest.steps.length - 1] || latest.job).spanId;
+    const latest = candidates.reduce((best, candidate) => !best || candidate.job.endNs > best.job.endNs ? candidate : best, null);
+    if (latest) {
+      const latestStop = latest.steps[latest.steps.length - 1] || latest.job;
+      record.job.parentId = latestStop.spanId;
+      const extraStops = candidates
+        .filter((candidate) => candidate !== latest)
+        .map((candidate) => (candidate.steps[candidate.steps.length - 1] || candidate.job).spanId);
+      if (extraStops.length) record.job.attrs['ci.needs.from'] = extraStops;
+    }
   }
   const t0 = spanData.reduce((m, s) => s.startNs < m ? s.startNs : m, spanData[0].startNs);
   const spans = spanData.map((s) => ({ spanId: s.spanId, parentId: s.parentId, service: s.service, name: s.name, start: Number(s.startNs - t0) / 1e6, duration: Math.max(0, Number(s.endNs - s.startNs) / 1e6), status: s.status, kind: s.kind, ...(s.statusMessage ? { statusMessage: s.statusMessage } : {}), attrs: Object.fromEntries(Object.entries(s.attrs).filter(([, v]) => v != null)) })).sort((a, b) => a.start - b.start || (a.parentId ? 1 : -1));
